@@ -44,8 +44,10 @@ function isFunctionalUpdate<Value>(
   return typeof value === 'function';
 }
 
-function createAction<S extends AnyStatefulPartition>(partition: S) {
-  type State = S['i'];
+function createAction<Partition extends AnyStatefulPartition>(
+  partition: Partition
+) {
+  type State = Partition['i'];
 
   const type = toScreamingSnakeCase(`Update ${partition.n}`);
 
@@ -67,32 +69,10 @@ function createAction<S extends AnyStatefulPartition>(partition: S) {
   };
 }
 
-function createReset<S extends AnyStatefulPartition>(partition: S) {
-  type State = S['i'];
-
-  const type = toScreamingSnakeCase(`Reset ${partition.n}`);
-
-  return function <ActionContext>(
-    context?: ActionContext
-  ): StatefulPartitionAction<State, ActionContext> {
-    const action = {
-      $$part: partition.id,
-      type,
-      value: partition.i,
-    } as StatefulPartitionAction<State, ActionContext>;
-
-    if (context) {
-      action.context = context;
-    }
-
-    return action;
-  };
-}
-
-function createDefaultComposedReduce<S extends AnyStatefulPartition>(
-  partition: S
+function createDefaultComposedReduce<Partition extends AnyStatefulPartition>(
+  partition: Partition
 ) {
-  type State = S['i'];
+  type State = Partition['i'];
 
   return function reduce(state: State = partition.i, action: AnyAction): State {
     return action.$$part === partition.id &&
@@ -102,10 +82,10 @@ function createDefaultComposedReduce<S extends AnyStatefulPartition>(
   };
 }
 
-function createDefaultPrimitiveReduce<S extends AnyStatefulPartition>(
-  partition: S
+function createDefaultPrimitiveReduce<Partition extends AnyStatefulPartition>(
+  partition: Partition
 ) {
-  type State = S['i'];
+  type State = Partition['i'];
 
   return function reduce(state: State = partition.i, action: AnyAction): State {
     return action.$$part === partition.id && !is(state, action.value)
@@ -114,17 +94,21 @@ function createDefaultPrimitiveReduce<S extends AnyStatefulPartition>(
   };
 }
 
-function createDefaultGet<S extends AnyStatefulPartition>(partition: S) {
-  return function get(getState: GetState): S['i'] {
+function createDefaultGet<Partition extends AnyStatefulPartition>(
+  partition: Partition
+) {
+  return function get(getState: GetState): Partition['i'] {
     return getState(partition);
   };
 }
 
-function createDefaultSet<S extends AnyStatefulPartition>(partition: S) {
+function createDefaultSet<Partition extends AnyStatefulPartition>(
+  partition: Partition
+) {
   return function set<ActionContext>(
     getState: GetState,
     dispatch: Dispatch,
-    update: S['i'] | FunctionalUpdate<S['i']>,
+    update: Partition['i'] | FunctionalUpdate<Partition['i']>,
     context?: ActionContext
   ) {
     const nextState = isFunctionalUpdate(update)
@@ -132,7 +116,7 @@ function createDefaultSet<S extends AnyStatefulPartition>(partition: S) {
       : update;
 
     dispatch(partition.action(nextState, context));
-  } as Set<S['i']>;
+  } as Set<Partition['i']>;
 }
 
 function createComposedPartition<
