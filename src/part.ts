@@ -162,7 +162,7 @@ function createComposedPartition<
   } as unknown as StatefulPartition<Name, ComposedState, true>;
 
   partition.d.forEach((descendantPartition) => {
-    const originalHandler = descendantPartition.r;
+    const originalReducer = descendantPartition.r;
     const parentName = descendantPartition.o;
 
     descendantPartition.r = (
@@ -170,7 +170,7 @@ function createComposedPartition<
       action: AnyAction
     ) => ({
       ...state,
-      [parentName]: originalHandler(state[parentName], action),
+      [parentName]: originalReducer(state[parentName], action),
     });
     descendantPartition.o = name;
     descendantPartition.p = [name, ...descendantPartition.p];
@@ -215,14 +215,14 @@ function createPrimitivePartition<Name extends string, State>(
 
 function createSelect<
   Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Handler extends (...args: SelectPartitionArgs<Sources>) => any
+  Selector extends (...args: SelectPartitionArgs<Sources>) => any
 >(
   sources: Sources,
-  handler: Handler,
-  isEqual: IsEqual<ReturnType<Handler>>
-): Get<ReturnType<Handler>> {
+  selector: Selector,
+  isEqual: IsEqual<ReturnType<Selector>>
+): Get<ReturnType<Selector>> {
   type Values = SelectPartitionArgs<Sources>;
-  type Result = ReturnType<Handler>;
+  type Result = ReturnType<Selector>;
 
   const length = sources.length;
 
@@ -235,7 +235,7 @@ function createSelect<
         isStatefulPartition(source) ? getState(source) : source.select(getState)
       ) as Values;
 
-      return (result = handler(...values));
+      return (result = selector(...values));
     }
 
     const nextValues = [] as Values;
@@ -254,17 +254,17 @@ function createSelect<
 
     values = nextValues;
 
-    return valuesChanged ? (result = handler(...values)) : result;
+    return valuesChanged ? (result = selector(...values)) : result;
   };
 }
 
 export function createSelectPartition<
   Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  SourcesHandler extends (...args: SelectPartitionArgs<Sources>) => any
+  Selector extends (...args: SelectPartitionArgs<Sources>) => any
 >(
   sources: Sources,
-  handler: SourcesHandler,
-  isEqual: IsEqual<ReturnType<SourcesHandler>> = is
+  selector: Selector,
+  isEqual: IsEqual<ReturnType<Selector>> = is
 ) {
   const subscriptionSources = sources.reduce<AnyStatefulPartition[]>(
     (partitions, source) => {
@@ -286,7 +286,7 @@ export function createSelectPartition<
     },
     []
   );
-  const select = createSelect(sources, handler as SourcesHandler, isEqual);
+  const select = createSelect(sources, selector as Selector, isEqual);
 
   const partition = {
     id: getId('SelectPartition'),
@@ -295,24 +295,24 @@ export function createSelectPartition<
     d: subscriptionSources,
     e: isEqual,
     g: select,
-    r: handler,
+    r: selector,
     t: SELECT_PARTITION,
-  } as SelectPartition<SourcesHandler>;
+  } as SelectPartition<Selector>;
 
   return partition;
 }
 
-export function createUpdatePartition<Handler extends UpdatePartitionHandler>(
-  handler: Handler
+export function createUpdatePartition<Updater extends UpdatePartitionHandler>(
+  updater: Updater
 ) {
   const partition = {
     id: getId('UpdatePartition'),
-    update: handler,
+    update: updater,
 
     d: [],
-    s: handler,
+    s: updater,
     t: UPDATE_PARTITION,
-  } as UpdatePartition<Handler>;
+  } as UpdatePartition<Updater>;
 
   return partition;
 }
@@ -359,25 +359,25 @@ export function part<
 
 export function part<
   Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  SourcesHandler extends (...args: SelectPartitionArgs<Sources>) => any
+  Updater extends (...args: SelectPartitionArgs<Sources>) => any
 >(
   sources: Sources,
-  handler: SourcesHandler,
-  isEqual?: IsEqual<ReturnType<SourcesHandler>>
-): SelectPartition<SourcesHandler>;
+  updater: Updater,
+  isEqual?: IsEqual<ReturnType<Updater>>
+): SelectPartition<Updater>;
 
-export function part<UpdateHandler extends UpdatePartitionHandler>(
+export function part<Updater extends UpdatePartitionHandler>(
   _ignored: null | undefined,
-  handler: UpdateHandler
-): UpdatePartition<UpdateHandler>;
+  updater: Updater
+): UpdatePartition<Updater>;
 
 export function part<
   Name extends string,
   State,
   ChildPartitions extends readonly AnyStatefulPartition[],
   Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  SourcesHandler extends (...args: SelectPartitionArgs<Sources>) => any,
-  UpdateHandler extends UpdatePartitionHandler
+  Selector extends (...args: SelectPartitionArgs<Sources>) => any,
+  Updater extends UpdatePartitionHandler
 >(
   name: Name | Sources | null,
   config?:
@@ -385,18 +385,18 @@ export function part<
     | ComposedPartitionConfig<ChildPartitions>
     | AnyStatefulPartition
     | State
-    | SourcesHandler
-    | UpdateHandler,
-  maybeIsEqual?: IsEqual<ReturnType<SourcesHandler>>
+    | Selector
+    | Updater,
+  maybeIsEqual?: IsEqual<ReturnType<Selector>>
 ) {
   if (!name) {
-    return createUpdatePartition(config as UpdateHandler);
+    return createUpdatePartition(config as Updater);
   }
 
   if (isSelectSources(name)) {
     return createSelectPartition(
       name as Sources,
-      config as SourcesHandler,
+      config as Selector,
       maybeIsEqual
     );
   }
