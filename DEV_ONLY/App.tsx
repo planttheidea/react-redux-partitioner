@@ -36,7 +36,7 @@ store.subscribeToPartition(descriptionPart, () => {
 
 console.log('initial state', store.getState());
 
-store.dispatch(descriptionPart.action('next description'));
+store.dispatch(descriptionPart('next description'));
 
 function useAfterTimeout(fn: () => void, ms: number) {
   useEffect(() => {
@@ -91,7 +91,7 @@ function Title() {
 function Todos() {
   const [todos, updateTodos] = usePart(todosPart);
   const [, resetTodos] = usePart(null, (_getState, dispatch) =>
-    dispatch(todosPart.action([], 'resetting'))
+    dispatch(todosPart([], 'resetting'))
   );
 
   console.count('todos');

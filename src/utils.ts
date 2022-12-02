@@ -1,5 +1,6 @@
 import { ReducersMapObject } from 'redux';
 import {
+  PARTITION,
   READ_ONLY_PARTITION,
   READ_WRITE_PARTITION,
   UPDATE_PARTITION,
@@ -10,6 +11,7 @@ import type {
   AnyUpdatePartition,
   AnyStatefulPartition,
   AnyStatefulPartitionAction,
+  AnyPartition,
 } from './internalTypes';
 
 export function getDescendantPartitions(
@@ -62,6 +64,10 @@ export function isReducersMap(
 
 export function isSelectPartition(value: any): value is AnySelectPartition {
   return !!(value && READ_ONLY_PARTITION & value.t);
+}
+
+export function isPartition(value: any): value is AnyPartition {
+  return !!(value && PARTITION & value.t);
 }
 
 export function isPartitionAction(

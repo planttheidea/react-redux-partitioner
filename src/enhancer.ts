@@ -98,7 +98,7 @@ export function createPartitioner<
         }
 
         if (isSelectPartition(source)) {
-          return source.select(getState);
+          return source(getState);
         }
 
         if (isStatefulPartition(source)) {

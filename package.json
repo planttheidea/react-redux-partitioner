@@ -83,7 +83,7 @@
     "lint": "NODE_ENV=test eslint src",
     "lint:fix": "NODE_ENV=test eslint src --fix",
     "start": "npm run dev",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit --p build/tsconfig/base.json"
   },
   "type": "module",
   "version": "3.0.0"

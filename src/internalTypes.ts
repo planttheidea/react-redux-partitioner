@@ -57,7 +57,7 @@ export type PartitionState<StatefulPartition extends AnyStatefulPartition> = {
 export type SourceResult<Source> = Source extends AnyStatefulPartition
   ? Source['i']
   : Source extends AnySelectPartition
-  ? ReturnType<Source['select']>
+  ? ReturnType<Source>
   : any;
 
 export type CombineState<
@@ -112,11 +112,13 @@ export interface BasePartition {
 }
 export interface BaseStatefulPartition<Name extends string, State>
   extends BasePartition {
-  action: <ActionContext>(
+  <ActionContext>(
     nextValue: State,
     context?: ActionContext
-  ) => StatefulPartitionAction<State, ActionContext>;
-  toString: () => Name;
+  ): StatefulPartitionAction<State, ActionContext>;
+
+  toString(): Name;
+  type: string;
 
   a: string;
   d: AnyStatefulPartition[];
@@ -134,8 +136,7 @@ export interface PrimitivePartition<Name extends string, State>
 }
 export interface SelectPartition<Selector extends (...args: any[]) => any>
   extends BasePartition {
-  reset: never;
-  select: Get<ReturnType<Selector>>;
+  (...args: Parameters<Selector>): ReturnType<Selector>;
 
   d: AnyStatefulPartition[];
   e: IsEqual<ReturnType<Selector>>;
@@ -162,6 +163,7 @@ export interface StatefulPartitionConfig<State> {
   get?: Get<State>;
   reduce?: (state: State, action: any) => State;
   set?: Set<State>;
+  type?: string;
 }
 
 export interface PrimitivePartitionConfig<State>
@@ -208,7 +210,7 @@ export type UpdatePartitionHandler = (
 
 export interface UpdatePartition<Updater extends UpdatePartitionHandler>
   extends BasePartition {
-  update: Updater;
+  (...args: Parameters<Updater>): ReturnType<Updater>;
 
   d: [];
   i: never;

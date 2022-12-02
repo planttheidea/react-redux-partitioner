@@ -44,29 +44,6 @@ function isFunctionalUpdate<Value>(
   return typeof value === 'function';
 }
 
-function createAction<Partition extends AnyStatefulPartition>(
-  partition: Partition
-) {
-  type State = Partition['i'];
-
-  return function <ActionContext>(
-    nextState: State,
-    context?: ActionContext
-  ): StatefulPartitionAction<State, ActionContext> {
-    const action = {
-      $$part: partition.id,
-      value: nextState,
-      type: partition.a,
-    } as StatefulPartitionAction<State, ActionContext>;
-
-    if (context) {
-      action.context = context;
-    }
-
-    return action;
-  };
-}
-
 function createDefaultComposedReduce<Partition extends AnyStatefulPartition>(
   partition: Partition
 ) {
@@ -113,7 +90,7 @@ function createDefaultSet<Partition extends AnyStatefulPartition>(
       ? update(getState(partition))
       : update;
 
-    dispatch(partition.action(nextState, context));
+    dispatch(partition(nextState, context));
   } as Set<Partition['i']>;
 }
 
@@ -121,33 +98,61 @@ function createComposedPartition<
   Name extends string,
   ChildPartitions extends readonly AnyStatefulPartition[]
 >(name: Name, config: ComposedPartitionConfig<ChildPartitions>) {
-  type ComposedState = PartitionsState<[...ChildPartitions]>;
+  type State = PartitionsState<[...ChildPartitions]>;
 
   const initialState = config.partitions.reduce((state, childPartition) => {
-    state[childPartition.n as keyof ComposedState] = childPartition.i;
+    state[childPartition.n as keyof State] = childPartition.i;
 
     return state;
-  }, {} as ComposedState);
+  }, {} as State);
 
-  const partition = {
-    id: getId(name),
-    toString: () => name,
+  const descendantPartitions = getDescendantPartitions(config.partitions);
+  const actionCreator = function <ActionContext>(
+    nextState: State,
+    context?: ActionContext
+  ): StatefulPartitionAction<State, ActionContext> {
+    const action = {
+      $$part: partition.id,
+      value: nextState,
+      type: partition.a,
+    } as StatefulPartitionAction<State, ActionContext>;
 
-    d: getDescendantPartitions(config.partitions),
-    i: initialState,
-    n: name,
-    p: [name],
-    t: COMPOSED_PARTITION,
-  } as unknown as StatefulPartition<Name, ComposedState, true>;
+    if (context) {
+      action.context = context;
+    }
 
-  partition.d.forEach((descendantPartition) => {
+    return action;
+  };
+
+  const partition = actionCreator as unknown as StatefulPartition<
+    Name,
+    State,
+    true
+  >;
+  const type = config.type || `UPDATE_${toScreamingSnakeCase(name)}`;
+
+  partition.id = getId(name);
+  partition.toString = () => name;
+  partition.type = type;
+
+  partition.a = type;
+  partition.d = descendantPartitions;
+  partition.g = config.get || createDefaultGet(partition);
+  partition.i = initialState;
+  partition.n = partition.o = name;
+  partition.p = [name];
+  partition.r = config.reduce || createDefaultComposedReduce(partition);
+  partition.s = config.set || createDefaultSet(partition);
+  partition.t = COMPOSED_PARTITION;
+
+  descendantPartitions.forEach((descendantPartition) => {
     const originalReducer = descendantPartition.r;
     const parentName = descendantPartition.o;
     const path = [name, ...descendantPartition.p];
 
-    descendantPartition.a = `${path
-      .slice(0, path.length - 1)
-      .join('.')}/UPDATE_${toScreamingSnakeCase(descendantPartition.n)}`;
+    descendantPartition.a = `${path.slice(0, path.length - 1).join('.')}/${
+      descendantPartition.type
+    }`;
     descendantPartition.o = name;
     descendantPartition.p = path;
     descendantPartition.r = (
@@ -159,13 +164,6 @@ function createComposedPartition<
     });
   });
 
-  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
-  partition.g = config.get || createDefaultGet(partition);
-  partition.r = config.reduce || createDefaultComposedReduce(partition);
-  partition.s = config.set || createDefaultSet(partition);
-
-  partition.action = createAction(partition);
-
   return partition;
 }
 
@@ -173,36 +171,53 @@ function createPrimitivePartition<Name extends string, State>(
   name: Name,
   config: PrimitivePartitionConfig<State>
 ) {
-  const partition = {
-    id: getId(name),
-    toString: () => name,
+  const actionCreator = function <ActionContext>(
+    nextState: State,
+    context?: ActionContext
+  ): StatefulPartitionAction<State, ActionContext> {
+    const action = {
+      $$part: partition.id,
+      value: nextState,
+      type: partition.a,
+    } as StatefulPartitionAction<State, ActionContext>;
 
-    i: config.initialState,
-    n: name,
-    o: name,
-    p: [name],
-    t: PRIMITIVE_PARTITION,
-  } as unknown as StatefulPartition<Name, State, false>;
+    if (context) {
+      action.context = context;
+    }
 
-  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
+    return action;
+  };
+
+  const partition = actionCreator as StatefulPartition<Name, State, false>;
+  const type = config.type || `UPDATE_${toScreamingSnakeCase(name)}`;
+
+  partition.id = getId(name);
+  partition.toString = () => name;
+  partition.type = type;
+
+  console.log({ type });
+
+  partition.a = type;
   partition.d = [partition];
   partition.g = config.get || createDefaultGet(partition);
+  partition.i = config.initialState;
+  partition.n = partition.o = name;
+  partition.p = [name];
   partition.r = config.reduce || createDefaultPrimitiveReduce(partition);
   partition.s = config.set || createDefaultSet(partition);
-
-  partition.action = createAction(partition);
+  partition.t = PRIMITIVE_PARTITION;
 
   return partition;
 }
 
-function createSelect<
+export function createSelectPartition<
   Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
   Selector extends (...args: SelectPartitionArgs<Sources>) => any
 >(
   sources: Sources,
   selector: Selector,
-  isEqual: IsEqual<ReturnType<Selector>>
-): Get<ReturnType<Selector>> {
+  isEqual: IsEqual<ReturnType<Selector>> = is
+) {
   type Values = SelectPartitionArgs<Sources>;
   type Result = ReturnType<Selector>;
 
@@ -211,10 +226,10 @@ function createSelect<
   let values: Values;
   let result: Result;
 
-  return function select(getState: GetState): Result {
+  function select(getState: GetState): Result {
     if (!values) {
       values = sources.map((source) =>
-        isStatefulPartition(source) ? getState(source) : source.select(getState)
+        isStatefulPartition(source) ? getState(source) : source(getState)
       ) as Values;
 
       return (result = selector(...values));
@@ -229,7 +244,7 @@ function createSelect<
 
       nextValues[index] = isStatefulPartition(source)
         ? getState(source)
-        : source.select(getState);
+        : source(getState);
       valuesChanged =
         valuesChanged || isEqual(values[index], nextValues[index]);
     }
@@ -237,49 +252,31 @@ function createSelect<
     values = nextValues;
 
     return valuesChanged ? (result = selector(...values)) : result;
-  };
-}
+  }
 
-export function createSelectPartition<
-  Sources extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Sources>) => any
->(
-  sources: Sources,
-  selector: Selector,
-  isEqual: IsEqual<ReturnType<Selector>> = is
-) {
-  const subscriptionSources = sources.reduce<AnyStatefulPartition[]>(
-    (partitions, source) => {
-      if (isStatefulPartition(source)) {
-        if (!~partitions.indexOf(source)) {
-          partitions.push(source);
-        }
-      } else if (isSelectPartition(source)) {
-        source.d.forEach((sourcePartition: AnyStatefulPartition) => {
-          if (!~partitions.indexOf(sourcePartition)) {
-            partitions.push(sourcePartition);
-          }
-        });
-      } else {
-        throw new Error('Invalid source provided to partition select');
+  const partition = select as SelectPartition<Selector>;
+
+  partition.id = getId('SelectPartition');
+  partition.d = sources.reduce<AnyStatefulPartition[]>((partitions, source) => {
+    if (isStatefulPartition(source)) {
+      if (!~partitions.indexOf(source)) {
+        partitions.push(source);
       }
+    } else if (isSelectPartition(source)) {
+      source.d.forEach((sourcePartition: AnyStatefulPartition) => {
+        if (!~partitions.indexOf(sourcePartition)) {
+          partitions.push(sourcePartition);
+        }
+      });
+    } else {
+      throw new Error('Invalid source provided to partition select');
+    }
 
-      return partitions;
-    },
-    []
-  );
-  const select = createSelect(sources, selector as Selector, isEqual);
-
-  const partition = {
-    id: getId('SelectPartition'),
-    select,
-
-    d: subscriptionSources,
-    e: isEqual,
-    g: select,
-    r: selector,
-    t: SELECT_PARTITION,
-  } as SelectPartition<Selector>;
+    return partitions;
+  }, []);
+  partition.e = isEqual;
+  partition.g = select;
+  partition.t = SELECT_PARTITION;
 
   return partition;
 }
@@ -287,14 +284,16 @@ export function createSelectPartition<
 export function createUpdatePartition<Updater extends UpdatePartitionHandler>(
   updater: Updater
 ) {
-  const partition = {
-    id: getId('UpdatePartition'),
-    update: updater,
-
-    d: [],
-    s: updater,
-    t: UPDATE_PARTITION,
+  const partition = function update(
+    ...args: Parameters<Updater>
+  ): ReturnType<Updater> {
+    return updater.apply(this, args);
   } as UpdatePartition<Updater>;
+
+  partition.id = getId('UpdatePartition');
+  partition.d = [];
+  partition.s = updater;
+  partition.t = UPDATE_PARTITION;
 
   return partition;
 }

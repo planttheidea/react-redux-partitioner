@@ -19,6 +19,7 @@ import type {
   UseUpdatePartitionHandler,
   AnyPrimitivePartition,
 } from '../../src';
+import { isPartition, isStatefulPartition } from '../../src/utils';
 
 export function useDispatch() {
   return useStore().dispatch;
@@ -103,22 +104,17 @@ export function usePartUpdate<
   const store = useStore();
   const partition = useMemo(
     () =>
-      typeof partitionOrHandler === 'function'
-        ? createUpdatePartition(partitionOrHandler)
-        : partitionOrHandler,
+      isStatefulPartition(partitionOrHandler)
+        ? partitionOrHandler
+        : createUpdatePartition(partitionOrHandler),
     [partitionOrHandler]
-  );
+  ) as AnyUpdatePartition;
 
   return useMemo(
     () =>
       partition.s
         ? (...args: UpdatePartitionArgs<StatefulPartition['s']>) =>
-            partition.s(
-              store.getState,
-              store.dispatch,
-              // @ts-expect-error - Spread is not liked here
-              ...args
-            )
+            partition.s(store.getState, store.dispatch, ...args)
         : ((() => {}) as never),
     [store, partition]
   );

@@ -2,8 +2,11 @@ import { part } from '../../src';
 
 export const todosPart = part('todos', {
   initialState: [] as string[],
+  type: 'UPDATE_TODOS_CUSTOM',
 });
-export const titlePart = part('title', { initialState: 'Todos' });
+export const titlePart = part('title', {
+  initialState: 'Todos',
+});
 
 export const conditionalUpdate = part(
   null,
@@ -12,18 +15,18 @@ export const conditionalUpdate = part(
       return console.error('Invalid title');
     }
 
-    return dispatch(titlePart.action(nextTitle));
+    return dispatch(titlePart(nextTitle));
   }
 );
 export const resetTodosUpdate = part(null, (_getState, dispatch) =>
-  dispatch(todosPart.action([]))
+  dispatch(todosPart([]))
 );
 
 export const activeTogglePart = part('active', false);
 export const deactivateToggleAction = () =>
-  activeTogglePart.action(false, 'deactivating toggle');
+  activeTogglePart(false, 'deactivating toggle');
 export const activateToggleAction = () =>
-  activeTogglePart.action(true, 'activating toggle');
+  activeTogglePart(true, 'activating toggle');
 
 export const parentPart = part('parent', {
   partitions: [todosPart, titlePart] as const,
