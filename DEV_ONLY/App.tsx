@@ -91,7 +91,7 @@ function Title() {
 function Todos() {
   const [todos, updateTodos] = usePart(todosPart);
   const [, resetTodos] = usePart(null, (_getState, dispatch) =>
-    dispatch(todosPart.reset())
+    dispatch(todosPart.action([], 'resetting'))
   );
 
   console.count('todos');

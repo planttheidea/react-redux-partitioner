@@ -44,13 +44,10 @@ function isFunctionalUpdate<Value>(
   return typeof value === 'function';
 }
 
-function createAction<S extends AnyStatefulPartition>(
-  partition: S,
-  typeOverride: string | undefined
-) {
+function createAction<S extends AnyStatefulPartition>(partition: S) {
   type State = S['i'];
 
-  const type = typeOverride || toScreamingSnakeCase(`Update ${partition.n}`);
+  const type = toScreamingSnakeCase(`Update ${partition.n}`);
 
   return function <ActionContext>(
     nextState: State,
@@ -92,12 +89,12 @@ function createReset<S extends AnyStatefulPartition>(partition: S) {
   };
 }
 
-function createDefaultComposedHandle<S extends AnyStatefulPartition>(
+function createDefaultComposedReduce<S extends AnyStatefulPartition>(
   partition: S
 ) {
   type State = S['i'];
 
-  return function handle(state: State = partition.i, action: AnyAction): State {
+  return function reduce(state: State = partition.i, action: AnyAction): State {
     return action.$$part === partition.id &&
       !is(state[partition.n], action.value)
       ? { ...state, [partition.n]: action.value }
@@ -105,12 +102,12 @@ function createDefaultComposedHandle<S extends AnyStatefulPartition>(
   };
 }
 
-function createDefaultPrimitiveHandle<S extends AnyStatefulPartition>(
+function createDefaultPrimitiveReduce<S extends AnyStatefulPartition>(
   partition: S
 ) {
   type State = S['i'];
 
-  return function handle(state: State = partition.i, action: AnyAction): State {
+  return function reduce(state: State = partition.i, action: AnyAction): State {
     return action.$$part === partition.id && !is(state, action.value)
       ? action.value
       : state;
@@ -178,11 +175,10 @@ function createComposedPartition<
   });
 
   partition.g = config.get || createDefaultGet(partition);
-  partition.r = config.handle || createDefaultComposedHandle(partition);
+  partition.r = config.reduce || createDefaultComposedReduce(partition);
   partition.s = config.set || createDefaultSet(partition);
 
-  partition.action = createAction(partition, config.type);
-  partition.reset = createReset(partition);
+  partition.action = createAction(partition);
 
   return partition;
 }
@@ -204,11 +200,10 @@ function createPrimitivePartition<Name extends string, State>(
 
   partition.d = [partition];
   partition.g = config.get || createDefaultGet(partition);
-  partition.r = config.handle || createDefaultPrimitiveHandle(partition);
+  partition.r = config.reduce || createDefaultPrimitiveReduce(partition);
   partition.s = config.set || createDefaultSet(partition);
 
-  partition.action = createAction(partition, config.type);
-  partition.reset = createReset(partition);
+  partition.action = createAction(partition);
 
   return partition;
 }

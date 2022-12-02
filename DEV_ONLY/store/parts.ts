@@ -16,7 +16,7 @@ export const conditionalUpdate = part(
   }
 );
 export const resetTodosUpdate = part(null, (_getState, dispatch) =>
-  dispatch(todosPart.reset())
+  dispatch(todosPart.action([]))
 );
 
 export const activeTogglePart = part('active', false);

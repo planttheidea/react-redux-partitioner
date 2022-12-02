@@ -116,9 +116,6 @@ export interface BaseStatefulPartition<Name extends string, State>
     nextValue: State,
     context?: ActionContext
   ) => StatefulPartitionAction<State, ActionContext>;
-  reset: <ActionContext>(
-    context?: ActionContext
-  ) => StatefulPartitionAction<State, ActionContext>;
   toString: () => Name;
 
   d: AnyStatefulPartition[];
@@ -161,10 +158,9 @@ export type StatefulPartition<
   : PrimitivePartition<Name, State>;
 
 export interface StatefulPartitionConfig<State> {
-  handle?: (state: State, action: any) => State;
   get?: Get<State>;
+  reduce?: (state: State, action: any) => State;
   set?: Set<State>;
-  type?: string;
 }
 
 export interface PrimitivePartitionConfig<State>
