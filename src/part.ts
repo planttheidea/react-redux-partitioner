@@ -49,8 +49,6 @@ function createAction<Partition extends AnyStatefulPartition>(
 ) {
   type State = Partition['i'];
 
-  const type = toScreamingSnakeCase(`Update ${partition.n}`);
-
   return function <ActionContext>(
     nextState: State,
     context?: ActionContext
@@ -58,7 +56,7 @@ function createAction<Partition extends AnyStatefulPartition>(
     const action = {
       $$part: partition.id,
       value: nextState,
-      type,
+      type: partition.a,
     } as StatefulPartitionAction<State, ActionContext>;
 
     if (context) {
@@ -99,7 +97,7 @@ function createDefaultGet<Partition extends AnyStatefulPartition>(
 ) {
   return function get(getState: GetState): Partition['i'] {
     return getState(partition);
-  };
+  } as Get<Partition['i']>;
 }
 
 function createDefaultSet<Partition extends AnyStatefulPartition>(
@@ -145,7 +143,13 @@ function createComposedPartition<
   partition.d.forEach((descendantPartition) => {
     const originalReducer = descendantPartition.r;
     const parentName = descendantPartition.o;
+    const path = [name, ...descendantPartition.p];
 
+    descendantPartition.a = `${path
+      .slice(0, path.length - 1)
+      .join('.')}/UPDATE_${toScreamingSnakeCase(descendantPartition.n)}`;
+    descendantPartition.o = name;
+    descendantPartition.p = path;
     descendantPartition.r = (
       state: Record<string, any>,
       action: AnyAction
@@ -153,11 +157,9 @@ function createComposedPartition<
       ...state,
       [parentName]: originalReducer(state[parentName], action),
     });
-    descendantPartition.o = name;
-    descendantPartition.p = [name, ...descendantPartition.p];
-    descendantPartition.id = getId(descendantPartition.p.join('_'));
   });
 
+  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.g = config.get || createDefaultGet(partition);
   partition.r = config.reduce || createDefaultComposedReduce(partition);
   partition.s = config.set || createDefaultSet(partition);
@@ -182,6 +184,7 @@ function createPrimitivePartition<Name extends string, State>(
     t: PRIMITIVE_PARTITION,
   } as unknown as StatefulPartition<Name, State, false>;
 
+  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.d = [partition];
   partition.g = config.get || createDefaultGet(partition);
   partition.r = config.reduce || createDefaultPrimitiveReduce(partition);

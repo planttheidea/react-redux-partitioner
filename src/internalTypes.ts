@@ -118,6 +118,7 @@ export interface BaseStatefulPartition<Name extends string, State>
   ) => StatefulPartitionAction<State, ActionContext>;
   toString: () => Name;
 
+  a: string;
   d: AnyStatefulPartition[];
   g: Get<State>;
   i: State;
