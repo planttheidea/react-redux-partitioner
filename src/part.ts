@@ -195,8 +195,6 @@ function createPrimitivePartition<Name extends string, State>(
   partition.toString = () => name;
   partition.type = type;
 
-  console.log({ type });
-
   partition.a = type;
   partition.d = [partition];
   partition.g = config.get || createDefaultGet(partition);
