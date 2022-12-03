@@ -1,8 +1,8 @@
 import {
-  isSelectPartition,
   isPartitionAction,
+  isSelectPartition,
   isStatefulPartition,
-} from './utils';
+} from './validate';
 
 import type {
   PreloadedState,
@@ -17,11 +17,11 @@ import type {
   Notifier,
   Notify,
   PartitionId,
+  PartitionResult,
   PartitionsState,
   PartitionsStoreExtensions,
-  SourceResult,
   Unsubscribe,
-} from './internalTypes';
+} from './types';
 
 export function createPartitioner<
   Partitions extends readonly AnyStatefulPartition[]
@@ -86,23 +86,23 @@ export function createPartitioner<
 
       function getState(): PartitionedState;
       function getState<
-        Source extends AnySelectPartition | AnyStatefulPartition | undefined
-      >(source: Source): SourceResult<Source>;
+        Partition extends AnySelectPartition | AnyStatefulPartition | undefined
+      >(partition: Partition): PartitionResult<Partition>;
       function getState<
-        Source extends AnySelectPartition | AnyStatefulPartition | undefined
+        Partition extends AnySelectPartition | AnyStatefulPartition | undefined
       >(
-        source?: Source
-      ): Source extends any ? SourceResult<Source> : PartitionedState {
-        if (!source) {
+        partition?: Partition
+      ): Partition extends any ? PartitionResult<Partition> : PartitionedState {
+        if (!partition) {
           return originalGetState();
         }
 
-        if (isSelectPartition(source)) {
-          return source(getState);
+        if (isSelectPartition(partition)) {
+          return partition(getState);
         }
 
-        if (isStatefulPartition(source)) {
-          const path = source.p;
+        if (isStatefulPartition(partition)) {
+          const path = partition.p;
 
           let state: any = originalGetState();
 
@@ -135,7 +135,7 @@ export function createPartitioner<
           nextPartitionListeners);
 
         while (slicesToNotify.length > 0) {
-          const id = slicesToNotify.pop();
+          const id = slicesToNotify.pop()!;
           const partitionListeners = allPartitionListeners[id];
 
           if (!partitionListeners) {

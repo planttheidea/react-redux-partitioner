@@ -1,27 +1,19 @@
-import { ReducersMapObject } from 'redux';
-import {
-  PARTITION,
-  READ_ONLY_PARTITION,
-  READ_WRITE_PARTITION,
-  UPDATE_PARTITION,
-} from './flags';
-
 import type {
   AnySelectPartition,
-  AnyUpdatePartition,
   AnyStatefulPartition,
-  AnyStatefulPartitionAction,
-  AnyPartition,
-} from './internalTypes';
+  PartitionId,
+} from './types';
 
 export function getDescendantPartitions(
-  partitions: AnyStatefulPartition[] | readonly AnyStatefulPartition[]
+  partitions:
+    | Array<AnySelectPartition | AnyStatefulPartition>
+    | ReadonlyArray<AnySelectPartition | AnyStatefulPartition>
 ): AnyStatefulPartition[] {
   const descendantPartitions: AnyStatefulPartition[] = [];
 
   partitions.forEach((partition) => {
     partition.d.forEach((descendantPartition) => {
-      if (!~descendantPartitions.indexOf(partition)) {
+      if (!~descendantPartitions.indexOf(descendantPartition)) {
         descendantPartitions.push(descendantPartition);
       }
     });
@@ -32,7 +24,7 @@ export function getDescendantPartitions(
 
 let hashId = 0;
 
-export function getId(name: string) {
+export function getId(name: string): PartitionId {
   const string = `${name}_${hashId++}`;
 
   let index = string.length;
@@ -50,39 +42,17 @@ export function getId(name: string) {
   return (hashA >>> 0) * 4096 + (hashB >>> 0);
 }
 
+export function identity<Value>(value: Value): Value {
+  return value;
+}
+
 export const is =
   Object.is ||
   function is(x, y) {
     return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;
   };
 
-export function isReducersMap(
-  value: any
-): value is ReducersMapObject<any, any> {
-  return typeof value === 'object';
-}
-
-export function isSelectPartition(value: any): value is AnySelectPartition {
-  return !!(value && READ_ONLY_PARTITION & value.t);
-}
-
-export function isPartition(value: any): value is AnyPartition {
-  return !!(value && PARTITION & value.t);
-}
-
-export function isPartitionAction(
-  value: any
-): value is AnyStatefulPartitionAction {
-  return !!(value && value.$$part);
-}
-
-export function isStatefulPartition(value: any): value is AnyStatefulPartition {
-  return !!(value && READ_WRITE_PARTITION & value.t);
-}
-
-export function isUpdatePartition(value: any): value is AnyUpdatePartition {
-  return !!(value && UPDATE_PARTITION & value.t);
-}
+export function noop() {}
 
 export function toScreamingSnakeCase(string: string): string {
   return string

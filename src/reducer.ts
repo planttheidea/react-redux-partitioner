@@ -1,11 +1,7 @@
 // @ts-expect-error - `ActionTypes` not on public redux API
 import { __DO_NOT_USE__ActionTypes as ActionTypes } from 'redux';
-import {
-  getDescendantPartitions,
-  is,
-  isPartitionAction,
-  isReducersMap,
-} from './utils';
+import { is } from './utils';
+import { isPartitionAction } from './validate';
 
 import type {
   Action,
@@ -14,7 +10,13 @@ import type {
   ReducersMapObject,
   StateFromReducersMapObject,
 } from 'redux';
-import type { AnyStatefulPartition, PartitionsState } from './internalTypes';
+import type { AnyStatefulPartition, PartitionsState } from './types';
+
+export function isReducersMap(
+  value: any
+): value is ReducersMapObject<any, any> {
+  return typeof value === 'object';
+}
 
 export function combineReduxReducers<
   PartitionsState,

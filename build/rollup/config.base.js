@@ -1,3 +1,4 @@
+import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import path from 'path';
@@ -11,11 +12,16 @@ const external = [
   ...Object.keys(pkg.dependencies || {}),
   ...Object.keys(pkg.peerDependencies || {}),
 ];
-const globals = external.reduce((globals, name) => {
-  globals[name] = name;
+const globals = external.reduce(
+  (globals, name) => {
+    globals[name] = name;
 
-  return globals;
-}, {});
+    return globals;
+  },
+  {
+    'use-sync-external-store/with-selector': 'useSyncExternalStoreWithSelector',
+  }
+);
 
 export default {
   external,
@@ -29,6 +35,9 @@ export default {
   plugins: [
     nodeResolve({
       mainFields: ['module', 'browser', 'main'],
+    }),
+    commonjs({
+      include: 'node_modules/use-sync-external-store/**',
     }),
     typescript({
       tsconfig: path.resolve(ROOT, 'build', 'tsconfig', 'base.json'),

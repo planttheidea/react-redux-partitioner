@@ -64,7 +64,8 @@
   "name": "redux-partitioner",
   "peerDependencies": {
     "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "react-dom": ">=16.8.0",
+    "react-redux": ">=7.0.0"
   },
   "repository": {
     "type": "git",

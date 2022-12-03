@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Provider as ReactReduxProvider, useDispatch } from 'react-redux';
-import {
-  Provider as ReduxPartitionsProvider,
-  usePart,
-  usePartUpdate,
-  usePartValue,
-} from './react';
+// import {
+//   Provider as ReduxPartitionsProvider,
+// usePart,
+// usePartUpdate,
+// usePartValue,
+// } from './react';
 import {
   // store,
   storeConfigured as store,
 } from './store';
 
+import { usePart, usePartUpdate, usePartValue } from '../src';
 import {
   activateToggleAction,
   activeTogglePart,
@@ -91,12 +92,12 @@ function Title() {
 function Todos() {
   const [todos, updateTodos] = usePart(todosPart);
   const [, resetTodos] = usePart(null, (_getState, dispatch) =>
-    dispatch(todosPart([], 'resetting'))
+    dispatch(todosPart([]))
   );
 
   console.count('todos');
 
-  useAfterTimeout(() => updateTodos(['foo'], 'setting initial todo'), 1000);
+  useAfterTimeout(() => updateTodos(['foo']), 1000);
   useAfterTimeout(
     () => updateTodos((exitingTodos) => [...exitingTodos, 'bar']),
     2000
@@ -219,35 +220,33 @@ export default function App() {
 
   return (
     <ReactReduxProvider store={store}>
-      <ReduxPartitionsProvider store={store}>
-        <main>
-          <h1>App</h1>
+      <main>
+        <h1>App</h1>
 
-          <Active />
-          <Toggle />
+        <Active />
+        <Toggle />
 
-          <br />
+        <br />
 
-          {userVisible && (
-            <>
-              <User />
-              <UserNameStoreSelector />
-              <UserNameInlineSelector />
-              <UseNameComposedSelector />
-            </>
-          )}
+        {userVisible && (
+          <>
+            <User />
+            <UserNameStoreSelector />
+            <UserNameInlineSelector />
+            <UseNameComposedSelector />
+          </>
+        )}
 
-          <br />
+        <br />
 
-          <Title />
-          <Description />
-          <Todos />
+        <Title />
+        <Description />
+        <Todos />
 
-          <br />
+        <br />
 
-          <Owner />
-        </main>
-      </ReduxPartitionsProvider>
+        <Owner />
+      </main>
     </ReactReduxProvider>
   );
 }
