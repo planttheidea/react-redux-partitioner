@@ -7,6 +7,7 @@ import {
 import {
   getDescendantPartitions,
   getId,
+  identity,
   is,
   noop,
   toScreamingSnakeCase,
@@ -24,6 +25,7 @@ import {
 import type { AnyAction, Dispatch, Reducer } from 'redux';
 import type {
   AnyGenericSelector,
+  AnyGetValue,
   AnySelector,
   AnySelectPartition,
   AnyStatefulPartition,
@@ -32,6 +34,8 @@ import type {
   ComposedPartitionConfig,
   FunctionalUpdate,
   GetState,
+  PartitionAction,
+  PartitionActionConfig,
   PartitionsState,
   PrimitivePartition,
   PrimitivePartitionConfig,
@@ -54,6 +58,14 @@ function createComposedReducer<State>(
 
     return is(state, nextState) ? state : { ...state, [name]: nextState };
   };
+}
+
+function getPrefixedType(path: string[], type: string): string {
+  const prefix = path.slice(0, path.length - 1).join('.');
+  const splitType = type.split('/');
+  const baseType = splitType[splitType.length - 1];
+
+  return prefix ? `${prefix}/${baseType}` : baseType;
 }
 
 function isFunctionalUpdate<State>(
@@ -81,16 +93,13 @@ export function createComposedPart<
 
   descendantPartitions.forEach((descendantPartition) => {
     const path = [name, ...descendantPartition.p];
-    const newTypePrefix = path.slice(0, path.length - 1).join('.');
-    const splitType = descendantPartition.a.split('/');
-    const baseType =
-      splitType.length > 1 ? splitType[splitType.length - 1] : splitType[0];
+    const type = getPrefixedType(path, descendantPartition.a);
     const nextReducer = createComposedReducer<State>(
       descendantPartition.o,
       descendantPartition.r
     );
 
-    descendantPartition.a = `${newTypePrefix}/${baseType}`;
+    descendantPartition.a = type;
     descendantPartition.o = name;
     descendantPartition.p = path;
     descendantPartition.r = nextReducer;
@@ -98,7 +107,7 @@ export function createComposedPart<
 
   const partition: ComposedPartition<Name, Partitions> = function actionCreator(
     nextValue: State
-  ) {
+  ): PartitionAction<State> {
     return {
       $$part: partition.id,
       type: partition.a,
@@ -108,6 +117,7 @@ export function createComposedPart<
 
   partition.id = getId(name);
   partition.toString = () => partition.a;
+  partition.update = createPartUpdater(partition);
 
   partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.d = descendantPartitions;
@@ -139,7 +149,7 @@ export function createPrimitivePart<Name extends string, State>(
 
   const partition: PrimitivePartition<Name, State> = function actionCreator(
     nextValue: State
-  ) {
+  ): PartitionAction<State> {
     return {
       $$part: partition.id,
       type: partition.a,
@@ -149,6 +159,7 @@ export function createPrimitivePart<Name extends string, State>(
 
   partition.id = getId(name);
   partition.toString = () => partition.a;
+  partition.update = createPartUpdater(partition);
 
   partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.d = [partition];
@@ -230,6 +241,45 @@ export function createUpdatePart<Updater extends AnyUpdater>(
   partition.s = set;
 
   return partition;
+}
+
+export function createPartUpdater<Partition extends AnyStatefulPartition>(
+  partition: Partition
+) {
+  return function partAction<GetValue extends AnyGetValue<Partition['i']>>(
+    baseType: string,
+    getValue: GetValue = identity as GetValue
+  ) {
+    let path = partition.p;
+    let type = getPrefixedType(path, baseType);
+
+    function getType() {
+      if (partition.p !== path) {
+        path = partition.p;
+        type = getPrefixedType(path, baseType);
+      }
+
+      return type;
+    }
+
+    function set(
+      getState: GetState,
+      dispatch: Dispatch,
+      ...rest: Parameters<GetValue>
+    ) {
+      const update = getValue(...rest);
+      const nextValue = isFunctionalUpdate(update)
+        ? update(getState(partition))
+        : update;
+
+      return dispatch<PartitionAction<Partition['i']>>({
+        ...partition(nextValue),
+        type: getType(),
+      });
+    }
+
+    return createUpdatePart<typeof set>({ set });
+  };
 }
 
 export function part<Name extends string, State>(

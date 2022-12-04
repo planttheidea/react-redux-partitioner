@@ -12,18 +12,22 @@ import {
 
 import { part, usePart, usePartUpdate, usePartValue } from '../src';
 import {
+  activateUpdate,
   activateToggleAction,
   activeTogglePart,
   conditionalUpdate,
+  deactivateUpdate,
   deactivateToggleAction,
   descriptionPart,
   firstNamePart,
   fullNameSelect,
   idPart,
   lastNamePart,
+  newUserUpdate,
   parentPart,
   titlePart,
   todosPart,
+  toggleUpdate,
   userSelect,
 } from './store/parts';
 
@@ -131,11 +135,11 @@ function Todos() {
 
 function Toggle() {
   const setActive = usePartUpdate(activeTogglePart);
-  const toggleActive = useCallback(
-    () => setActive((prevActive) => !prevActive),
-    [setActive]
-  );
 
+  // const toggleActive = useCallback(
+  //   () => setActive((prevActive) => !prevActive),
+  //   [setActive]
+  // );
   // const activate = useCallback(
   //   () => setActive(true, { context: 'Activating toggle' }),
   //   [setActive]
@@ -144,15 +148,18 @@ function Toggle() {
   //   () => setActive(false, { context: 'Deactivating toggle' }),
   //   [setActive]
   // );
-  const dispatch = useDispatch();
-  const activate = useCallback(
-    () => dispatch(activateToggleAction()),
-    [dispatch]
-  );
-  const deactivate = useCallback(
-    () => dispatch(deactivateToggleAction()),
-    [dispatch]
-  );
+  // const dispatch = useDispatch();
+  // const activate = useCallback(
+  //   () => dispatch(activateToggleAction()),
+  //   [dispatch]
+  // );
+  // const deactivate = useCallback(
+  //   () => dispatch(deactivateToggleAction()),
+  //   [dispatch]
+  // );
+  const toggleActive = usePartUpdate(toggleUpdate);
+  const activate = usePartUpdate(activateUpdate);
+  const [, deactivate] = usePart(deactivateUpdate);
 
   console.count('toggle');
 
@@ -189,7 +196,9 @@ function User() {
 function UserId() {
   const id = usePartValue(idPart);
   const updateLastName = usePartUpdate(lastNamePart);
+  const updateId = usePartUpdate(newUserUpdate);
 
+  useAfterTimeout(() => updateId('lskdjgfslkjghslkfg'), 500);
   useAfterTimeout(() => updateLastName(`O'Testerson`), 1500);
 
   console.count('user id');

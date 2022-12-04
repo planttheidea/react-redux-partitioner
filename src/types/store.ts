@@ -1,21 +1,18 @@
 import type { Action, AnyAction, Store as ReduxStore } from 'redux';
 import type {
+  AnyPartition,
   AnyPartitionsState,
-  AnySelectPartition,
   AnyStatefulPartition,
   PartitionId,
   PartitionResult,
 } from './partition';
 import type { Listener, Unsubscribe } from './subscription';
 
-export interface GetState<
-  State = any,
-  Partition extends AnySelectPartition | AnyStatefulPartition =
-    | AnySelectPartition
-    | AnyStatefulPartition
-> {
+export interface GetState<State = any> {
   (): State;
-  (partition: Partition): PartitionResult<Partition>;
+  <Partition extends AnyPartition>(
+    partition: Partition
+  ): PartitionResult<Partition>;
 }
 
 export interface PartitionAction<Value = any> extends Action {

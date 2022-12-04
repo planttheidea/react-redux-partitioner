@@ -6,7 +6,7 @@ import type {
   STATEFUL_PARTITION,
   UPDATE_PARTITION,
 } from '../flags';
-import type { GetState } from './store';
+import type { GetState, PartitionAction } from './store';
 import type { FunctionalUpdate, IsEqual, Tuple } from './utils';
 
 export type PartitionId = number;
@@ -64,11 +64,28 @@ export interface BasePartition {
   d: AnyStatefulPartition[];
 }
 
+export type GetValueUpdater<State, GetValue extends AnyGetValue<State>> = (
+  getState: GetState<State>,
+  dispatch: Dispatch,
+  ...args: Parameters<GetValue>
+) => PartitionAction<State>;
+
+export interface StatefulPartitionUpdater<State> {
+  <GetValue extends AnyGetValue<State>>(type: string): UpdatePartition<
+    GetValueUpdater<State, (nextState: State) => State>
+  >;
+  <GetValue extends AnyGetValue<State>>(
+    type: string,
+    getValue: GetValue
+  ): UpdatePartition<GetValueUpdater<State, GetValue>>;
+}
+
 export interface BaseStatefulPartition<Name extends string, State>
   extends BasePartition {
   (nextValue: State): any;
 
   toString(): string;
+  update: StatefulPartitionUpdater<State>;
 
   a: string;
   f: typeof STATEFUL_PARTITION;
@@ -106,7 +123,7 @@ export type PartitionResult<Partition> = Partition extends AnyStatefulPartition
   ? Partition['i']
   : Partition extends AnySelectPartition
   ? ReturnType<Partition>
-  : never;
+  : undefined;
 
 type MergeSelectPartitionArgs<
   Args extends any[],
@@ -202,3 +219,15 @@ export type AnySelectPartition = SelectPartition<
 >;
 export type AnySelectablePartition = AnyStatefulPartition | AnySelectPartition;
 export type AnyUpdatePartition = UpdatePartition<AnyUpdater>;
+
+export type AnyGetValue<State> = (
+  ...args: any[]
+) => State | FunctionalUpdate<State>;
+
+export interface PartitionActionConfig<
+  Partition extends AnyStatefulPartition,
+  GetValue extends AnyGetValue<Partition['i']>
+> {
+  getValue?: GetValue;
+  type: string;
+}

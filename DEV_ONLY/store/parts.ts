@@ -25,6 +25,16 @@ export const activeTogglePart = part('active', false);
 export const deactivateToggleAction = () => activeTogglePart(false);
 export const activateToggleAction = () => activeTogglePart(true);
 
+export const deactivateUpdate = activeTogglePart.update(
+  'DEACTIVATE',
+  () => false
+);
+export const activateUpdate = activeTogglePart.update('ACTIVATE', () => true);
+export const toggleUpdate = activeTogglePart.update(
+  'TOGGLE',
+  () => (prev) => !prev
+);
+
 export const parentPart = part({
   name: 'parent',
   partitions: [todosPart, titlePart],
@@ -38,6 +48,8 @@ export const fullNameSelect = part(
   (firstName, lastName) => `${firstName} ${lastName}`
 );
 export const idPart = part('id', 'asdfsfdasfdsdsgafds');
+
+export const newUserUpdate = idPart.update('NEW_USER_ID');
 
 export const userPart = part({
   name: 'user',
