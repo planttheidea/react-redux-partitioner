@@ -45,15 +45,14 @@ import type {
 } from './types';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
 
-function createComposedReducer<State, OriginalReducer extends Reducer>(
+function createComposedReducer<State>(
   name: keyof State,
-  originalReducer: OriginalReducer
+  originalReducer: Reducer
 ) {
   return function reduce(state: State, action: AnyAction): State {
-    return {
-      ...state,
-      [name]: originalReducer(state[name], action),
-    };
+    const nextState = originalReducer(state[name], action);
+
+    return is(state, nextState) ? state : { ...state, [name]: nextState };
   };
 }
 
@@ -86,7 +85,7 @@ export function createComposedPart<
     const splitType = descendantPartition.a.split('/');
     const baseType =
       splitType.length > 1 ? splitType[splitType.length - 1] : splitType[0];
-    const nextReducer = createComposedReducer(
+    const nextReducer = createComposedReducer<State>(
       descendantPartition.o,
       descendantPartition.r
     );
