@@ -38,9 +38,10 @@ export const fullNameSelect = part(
   (firstName, lastName) => `${firstName} ${lastName}`
 );
 export const idPart = part('id', 'asdfsfdasfdsdsgafds');
+
 export const userPart = part({
   name: 'user',
-  partitions: [idPart, namePart] as const,
+  partitions: [idPart, namePart],
 });
 
 console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
