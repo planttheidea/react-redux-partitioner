@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { isSelectPart } from './validate';
 
 import type {
