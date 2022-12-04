@@ -11,7 +11,7 @@ import {
   storeConfigured as store,
 } from './store';
 
-import { usePart, usePartUpdate, usePartValue } from '../src';
+import { part, usePart, usePartUpdate, usePartValue } from '../src';
 import {
   activateToggleAction,
   activeTogglePart,
@@ -89,11 +89,13 @@ function Title() {
   return <div>Title: {title}</div>;
 }
 
+const resetUpdate = part(null, (_getState, dispatch) =>
+  dispatch(todosPart([]))
+);
+
 function Todos() {
   const [todos, updateTodos] = usePart(todosPart);
-  const [, resetTodos] = usePart(null, (_getState, dispatch) =>
-    dispatch(todosPart([]))
-  );
+  const [, resetTodos] = usePart(resetUpdate);
 
   console.count('todos');
 
@@ -184,29 +186,9 @@ function UserName() {
   );
 }
 
-function UseNameComposedSelector() {
-  const user = usePartValue([fullNameSelect, idPart], (fullName, id) =>
-    JSON.stringify({ fullName, id })
-  );
-
-  console.count('user composed');
-
-  return <div>User composed: {user}</div>;
-}
-
-function UserNameInlineSelector() {
-  const [fullName] = usePart([firstNamePart, lastNamePart], (first, last) => [
-    first,
-    last,
-  ]);
-
-  console.count('inline selector');
-
-  return <div>Inline selector: {fullName.join(' | ')}</div>;
-}
-
 function UserNameStoreSelector() {
-  const fullName = usePartValue(fullNameSelect);
+  const [fullName] = usePart(fullNameSelect);
+  // const fullName = usePartValue(fullNameSelect);
 
   console.count('stored selector');
 
@@ -232,8 +214,6 @@ export default function App() {
           <>
             <User />
             <UserNameStoreSelector />
-            <UserNameInlineSelector />
-            <UseNameComposedSelector />
           </>
         )}
 

@@ -13,7 +13,7 @@ import {
 } from './utils';
 import {
   isComposedConfig,
-  isPartitionsList,
+  isStatefulPartitionsList,
   isPrimitiveConfig,
   isSelectConfig,
   isSelector,
@@ -23,6 +23,7 @@ import {
 
 import type { AnyAction, Dispatch } from 'redux';
 import type {
+  AnySelector,
   AnySelectPartition,
   AnyStatefulPartition,
   AnyUpdater,
@@ -253,7 +254,7 @@ export function part<Name extends string, State>(
 ): PrimitivePartition<Name, State>;
 export function part<
   Partitions extends Tuple<AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any
+  Selector extends AnySelector
 >(
   config: SelectPartitionConfig<Partitions, Selector>
 ): SelectPartition<Partitions, Selector>;
@@ -287,7 +288,7 @@ export function part<
   }
 
   if (typeof first === 'string') {
-    if (isPartitionsList(second)) {
+    if (isStatefulPartitionsList(second)) {
       return createComposedPart({
         name: first,
         partitions: second,
@@ -300,7 +301,7 @@ export function part<
     });
   }
 
-  if (isPartitionsList(first)) {
+  if (isStatefulPartitionsList(first)) {
     if (isSelector(second)) {
       return createSelectPart({ get: second, partitions: first });
     }

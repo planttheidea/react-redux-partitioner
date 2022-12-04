@@ -199,4 +199,5 @@ export type AnySelectPartition = SelectPartition<
   Array<AnySelectPartition | AnyStatefulPartition>,
   AnySelector
 >;
+export type AnySelectablePartition = AnyStatefulPartition | AnySelectPartition;
 export type AnyUpdatePartition = UpdatePartition<AnyUpdater>;

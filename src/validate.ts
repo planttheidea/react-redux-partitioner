@@ -1,9 +1,18 @@
-import { SELECT_PARTITION, STATEFUL_PARTITION } from './flags';
+import {
+  PARTITION,
+  SELECTABLE_PARTITION,
+  SELECT_PARTITION,
+  STATEFUL_PARTITION,
+  UPDATE_PARTITION,
+} from './flags';
 
 import type {
+  AnyPartition,
+  AnySelectablePartition,
   AnySelector,
   AnySelectPartition,
   AnyStatefulPartition,
+  AnyUpdatePartition,
   AnyUpdater,
   ComposedPartitionConfig,
   PartitionAction,
@@ -18,16 +27,16 @@ export function isComposedConfig(
   return typeof value === 'object' && value !== null && 'partitions' in value;
 }
 
+export function isPartition(value: any): value is AnyPartition {
+  return typeof value === 'function' && !!(value.f & PARTITION);
+}
+
 export function isPartitionAction(value: any): value is PartitionAction {
   return (
     typeof value === 'object' &&
     value !== null &&
     typeof value.$$part === 'number'
   );
-}
-
-export function isPartitionsList(value: any): value is AnyStatefulPartition[] {
-  return Array.isArray(value) && isStatefulPartition(value[0]);
 }
 
 export function isPrimitiveConfig(
@@ -50,6 +59,18 @@ export function isSelectConfig(
   );
 }
 
+export function isSelectablePartition(
+  value: any
+): value is AnySelectablePartition {
+  return typeof value === 'function' && !!(value.f & SELECTABLE_PARTITION);
+}
+
+export function isSelectablePartitionsList(
+  value: any
+): value is AnyStatefulPartition[] {
+  return Array.isArray(value) && isSelectablePartition(value[0]);
+}
+
 export function isSelectPartition(value: any): value is AnySelectPartition {
   return typeof value === 'function' && !!(value.f & SELECT_PARTITION);
 }
@@ -62,6 +83,12 @@ export function isStatefulPartition(value: any): value is AnyStatefulPartition {
   return typeof value === 'function' && !!(value.f & STATEFUL_PARTITION);
 }
 
+export function isStatefulPartitionsList(
+  value: any
+): value is AnyStatefulPartition[] {
+  return Array.isArray(value) && isStatefulPartition(value[0]);
+}
+
 export function isUpdateConfig(
   value: any
 ): value is UpdatePartitionConfig<AnyUpdater> {
@@ -71,6 +98,10 @@ export function isUpdateConfig(
     'set' in value &&
     !('get' in value)
   );
+}
+
+export function isUpdatePartition(value: any): value is AnyUpdatePartition {
+  return typeof value === 'function' && !!(value.f & UPDATE_PARTITION);
 }
 
 export function isUpdater(value: any): value is AnyUpdater {

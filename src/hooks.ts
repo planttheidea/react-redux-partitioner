@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector';
-import { isStatefulPartition } from './validate';
+import { isSelectPartition, isStatefulPartition } from './validate';
 import { createSelectPart, createUpdatePart } from './part';
 
 import type {
@@ -20,6 +20,7 @@ import type {
   Unsubscribe,
   UseUpdateUpdater,
 } from './types';
+import { is } from './utils';
 
 function noop(): undefined {
   return;
@@ -29,114 +30,61 @@ function noopSubscribe() {
 }
 
 export function usePart<Partition extends AnyStatefulPartition>(
-  partition: Partition
+  partition: Partition,
+  isEqual?: IsEqual<Partition['g']>
 ): [ReturnType<Partition['g']>, UseUpdateUpdater<Partition['s']>];
-
 export function usePart<Partition extends AnySelectPartition>(
-  partition: Partition
+  partition: Partition,
+  isEqual?: IsEqual<Partition['g']>
 ): [ReturnType<Partition['g']>, never];
-export function usePart<
-  Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  PartitionsHandler extends (...args: SelectPartitionArgs<Partitions>) => any
->(
-  partitions: Partitions,
-  handler: PartitionsHandler,
-  isEqual?: IsEqual<ReturnType<PartitionsHandler>>
-): [ReturnType<PartitionsHandler>, never];
-
 export function usePart<Partition extends AnyUpdatePartition>(
-  partition: Partition
+  partition: Partition,
+  isEqual?: IsEqual<Partition['g']>
 ): [never, UseUpdateUpdater<Partition['s']>];
-export function usePart<UpdateHandler extends AnyUpdater>(
-  ignored: null | undefined,
-  handler: UpdateHandler
-): [never, UseUpdateUpdater<UpdateHandler>];
-
 export function usePart<
-  StatefulPartition extends AnyPartition,
-  Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  PartitionsHandler extends (...args: SelectPartitionArgs<Partitions>) => any,
-  UpdateHandler extends AnyUpdater
->(
-  partition: StatefulPartition | Partitions | null,
-  handler?: PartitionsHandler | UpdateHandler,
-  isEqual?: IsEqual<ReturnType<PartitionsHandler>>
-) {
-  const updateValue = partition || handler;
-
-  return [
-    usePartValue(partition as any, handler as PartitionsHandler, isEqual),
-    usePartUpdate(updateValue as any),
-  ];
+  Partition extends AnyStatefulPartition | AnySelectPartition
+>(partition: Partition, isEqual?: IsEqual<Partition['g']>) {
+  return [usePartValue(partition, isEqual), usePartUpdate(partition)];
 }
 
-export function usePartUpdate<PartitionsHandler extends AnyUpdater>(
-  handler: PartitionsHandler
-): UseUpdateUpdater<PartitionsHandler>;
 export function usePartUpdate<
   Partition extends AnyStatefulPartition | AnyUpdatePartition
 >(partition: Partition): UseUpdateUpdater<Partition['s']>;
-export function usePartUpdate<StatefulPartition extends AnySelectPartition>(
-  partition: StatefulPartition
+export function usePartUpdate<Partition extends AnyPartition>(
+  partition: Partition
 ): never;
-export function usePartUpdate<
-  StatefulPartition extends AnyPartition,
-  PartitionsHandler extends AnyUpdater
->(partitionOrHandler: StatefulPartition | PartitionsHandler) {
+export function usePartUpdate<Partition extends AnyPartition>(
+  partition: Partition
+) {
   const store = useStore();
-  const partition = useMemo(
-    () =>
-      isStatefulPartition(partitionOrHandler)
-        ? partitionOrHandler
-        : createUpdatePart({ set: partitionOrHandler }),
-    [partitionOrHandler]
-  ) as AnyUpdatePartition;
 
   return useMemo(
     () =>
-      partition.s
-        ? (...args: UpdatePartitionArgs<StatefulPartition['s']>) =>
-            partition.s(store.getState, store.dispatch, ...args)
-        : ((() => {}) as never),
+      (...rest: UpdatePartitionArgs<Partition['s']>) =>
+        partition.s(
+          store.getState,
+          store.dispatch,
+          // @ts-expect-error - Spread is not liked here.
+          ...rest
+        ),
     [store, partition]
   );
 }
 
 export function usePartValue<
-  StatefulPartition extends AnyStatefulPartition | AnySelectPartition
->(partition: StatefulPartition): ReturnType<StatefulPartition['g']>;
-export function usePartValue<StatefulPartition extends AnyUpdatePartition>(
-  partition: StatefulPartition
+  Partition extends AnyStatefulPartition | AnySelectPartition
+>(
+  partition: Partition,
+  isEqual?: IsEqual<ReturnType<Partition['g']>>
+): ReturnType<Partition['g']>;
+export function usePartValue<Partition extends AnyPartition>(
+  partition: Partition,
+  isEqual?: IsEqual<ReturnType<Partition['g']>>
 ): never;
-export function usePartValue<
-  Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  PartitionsHandler extends (...args: SelectPartitionArgs<Partitions>) => any
->(
-  partitions: Partitions,
-  handler: PartitionsHandler,
-  isEqual?: IsEqual<ReturnType<PartitionsHandler>>
-): ReturnType<PartitionsHandler>;
-export function usePartValue<
-  StatefulPartition extends AnyPartition,
-  Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  PartitionsHandler extends (...args: SelectPartitionArgs<Partitions>) => any
->(
-  partitionOrPartitions: StatefulPartition | Partitions | null,
-  handler?: PartitionsHandler,
-  isEqual?: IsEqual<ReturnType<PartitionsHandler>>
+export function usePartValue<Partition extends AnyPartition>(
+  partition: Partition,
+  isEqual?: IsEqual<ReturnType<Partition['g']>>
 ) {
-  const partitions: Array<AnySelectPartition | AnyStatefulPartition> =
-    Array.isArray(partitionOrPartitions)
-      ? partitionOrPartitions
-      : [partitionOrPartitions];
-  const partition = useMemo(
-    () =>
-      partitions.length > 1
-        ? createSelectPart({ get: handler!, isEqual, partitions: partitions })
-        : partitions[0],
-    [...partitions, handler, isEqual]
-  ) as StatefulPartition;
-
   const context = useContext(ReactReduxContext);
   const getServerState = context.getServerState;
   const store = context.store as Store;
@@ -180,11 +128,23 @@ export function usePartValue<
     [store, partition]
   );
 
+  const isSnapshotEqual = useMemo(() => {
+    if (isEqual) {
+      return isEqual;
+    }
+
+    if (isSelectPartition(partition)) {
+      return partition.e;
+    }
+
+    return is;
+  }, [partition, isEqual]);
+
   return useSyncExternalStoreWithSelector(
     subscribe,
     store.getState,
     getServerState || store.getState,
     getSnapshot,
-    isEqual
+    isSnapshotEqual
   );
 }
