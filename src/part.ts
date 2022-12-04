@@ -108,7 +108,7 @@ export function createComposedPart<
   };
 
   partition.id = getId(name);
-  partition.toString = () => name;
+  partition.toString = () => partition.a;
 
   partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.d = descendantPartitions;
@@ -149,7 +149,7 @@ export function createPrimitivePart<Name extends string, State>(
   };
 
   partition.id = getId(name);
-  partition.toString = () => name;
+  partition.toString = () => partition.a;
 
   partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   partition.d = [partition];

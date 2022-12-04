@@ -68,7 +68,7 @@ export interface BaseStatefulPartition<Name extends string, State>
   extends BasePartition {
   (nextValue: State): any;
 
-  toString(): Name;
+  toString(): string;
 
   a: string;
   f: typeof STATEFUL_PARTITION;

@@ -42,6 +42,9 @@ export const userPart = part({
   name: 'user',
   partitions: [idPart, namePart] as const,
 });
+
+console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
+
 export const userSelect = part(
   (getState) =>
     `${getState(fullNameSelect)} (${getState(idPart)}) - ${getState().legacy}`
