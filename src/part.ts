@@ -23,6 +23,7 @@ import {
 
 import type { AnyAction, Dispatch } from 'redux';
 import type {
+  AnyGenericSelector,
   AnySelector,
   AnySelectPartition,
   AnyStatefulPartition,
@@ -168,24 +169,32 @@ export function createPrimitivePart<Name extends string, State>(
 
 export function createSelectPart<
   Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any
+  Selector extends AnySelector<Partitions> | AnyGenericSelector
 >(
   config: SelectPartitionConfig<Partitions, Selector>
 ): SelectPartition<Partitions, Selector> {
-  const { get, isEqual = is, partitions = [] } = config;
+  const { get, isEqual = is, partitions } = config;
 
-  const select = function select(getState: any): ReturnType<Selector> {
-    const values = partitions.map(getState) as SelectPartitionArgs<Partitions>;
+  const select = partitions
+    ? function select(getState: GetState): ReturnType<Selector> {
+        const values = partitions.map(
+          getState
+        ) as SelectPartitionArgs<Partitions>;
 
-    return get(...values);
-  };
+        // @ts-expect-error - `values` not seen as a tuple.
+        return get(...values);
+      }
+    : function select(getState: GetState): ReturnType<Selector> {
+        return get(getState);
+      };
   const partition = select as SelectPartition<Partitions, Selector>;
 
   partition.id = getId('SelectPartition');
 
-  partition.d = partitions.length
-    ? getDescendantPartitions(partitions)
-    : ALL_DEPENDENCIES;
+  partition.d =
+    partitions && partitions.length
+      ? getDescendantPartitions(partitions)
+      : ALL_DEPENDENCIES;
   partition.e = isEqual;
   partition.f = SELECT_PARTITION as SelectPartition<Partitions, Selector>['f'];
   partition.g = select;
@@ -237,6 +246,9 @@ export function part<
   partitions: Partitions,
   selector: Selector
 ): SelectPartition<Partitions, Selector>;
+export function part<Selector extends AnyGenericSelector>(
+  selector: Selector
+): SelectPartition<[], Selector>;
 
 export function part<Updater extends AnyUpdater>(
   _: null,
@@ -258,6 +270,9 @@ export function part<
 >(
   config: SelectPartitionConfig<Partitions, Selector>
 ): SelectPartition<Partitions, Selector>;
+export function part<Selector extends AnyGenericSelector>(
+  config: SelectPartitionConfig<[], Selector>
+): SelectPartition<[], Selector>;
 export function part<Updater extends AnyUpdater>(
   config: UpdatePartitionConfig<Updater>
 ): UpdatePartition<Updater>;
@@ -266,7 +281,8 @@ export function part<
   Name extends string,
   State,
   Partitions extends Tuple<AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any,
+  Selector extends AnySelector<Partitions>,
+  GenericSelector extends AnyGenericSelector,
   Updater extends AnyUpdater
 >(
   first:
@@ -276,6 +292,7 @@ export function part<
     | PrimitivePartitionConfig<Name, State>
     | SelectPartitionConfig<Partitions, Selector>
     | UpdatePartitionConfig<Updater>
+    | GenericSelector
     | null,
   second?: State | Partitions | Selector | Updater
 ) {
@@ -323,6 +340,10 @@ export function part<
 
   if (isPrimitiveConfig(first)) {
     return createPrimitivePart(first);
+  }
+
+  if (isSelector(first)) {
+    return createSelectPart({ get: first });
   }
 
   throw new Error('Invalid config provided');

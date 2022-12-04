@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Provider as ReactReduxProvider, useDispatch } from 'react-redux';
+import {
+  Provider as ReactReduxProvider,
+  useDispatch,
+  useStore,
+} from 'react-redux';
 // import {
 //   Provider as ReduxPartitionsProvider,
 // usePart,
@@ -9,6 +13,7 @@ import { Provider as ReactReduxProvider, useDispatch } from 'react-redux';
 import {
   // store,
   storeConfigured as store,
+  type ReduxState,
 } from './store';
 
 import { part, usePart, usePartUpdate, usePartValue } from '../src';
@@ -25,6 +30,7 @@ import {
   parentPart,
   titlePart,
   todosPart,
+  userSelect,
 } from './store/parts';
 
 store.subscribe(() => {
@@ -75,6 +81,26 @@ function Owner() {
       <div>Owner todos: {JSON.stringify(owner.todos)}</div>
     </div>
   );
+}
+
+function Status() {
+  const store = useStore<ReduxState>();
+  const dispatch = useDispatch();
+  const [status, setStatus] = useState(store.getState().legacy);
+
+  useEffect(() => {
+    return store.subscribe(() => {
+      const nextStatus = store.getState().legacy;
+
+      if (nextStatus !== status) {
+        setStatus(nextStatus);
+      }
+    });
+  }, [store]);
+
+  useAfterTimeout(() => dispatch({ type: 'LEGACY' }), 3000);
+
+  return <div>Status: {status}</div>;
 }
 
 function Title() {
@@ -152,10 +178,14 @@ function Toggle() {
 }
 
 function User() {
+  const [user] = usePart(userSelect);
+
   console.count('user');
 
   return (
     <div>
+      <h2>User: {user}</h2>
+
       <UserId />
       <UserName />
     </div>
@@ -207,6 +237,7 @@ export default function App() {
 
         <Active />
         <Toggle />
+        <Status />
 
         <br />
 

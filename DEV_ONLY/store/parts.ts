@@ -42,6 +42,10 @@ export const userPart = part({
   name: 'user',
   partitions: [idPart, namePart] as const,
 });
+export const userSelect = part(
+  (getState) =>
+    `${getState(fullNameSelect)} (${getState(idPart)}) - ${getState().legacy}`
+);
 
 export const descriptionPart = part({
   name: 'description',

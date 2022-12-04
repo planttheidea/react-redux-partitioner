@@ -124,20 +124,21 @@ export type SelectPartitionArgs<
 
 export interface SelectPartitionConfig<
   Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any
+  Selector extends AnySelector<Partitions> | AnyGenericSelector
 > extends BasePartitionConfig {
   get: Selector;
   isEqual?: IsEqual<ReturnType<Selector>>;
-  partitions: Partitions;
+  partitions?: Partitions;
 }
 
-export type AnySelector = (
-  ...args: SelectPartitionArgs<AnyStatefulPartition[]>
-) => any;
+export type AnySelector<
+  Partitions extends readonly AnySelectablePartition[] = AnySelectablePartition[]
+> = (...args: SelectPartitionArgs<Partitions>) => any;
+export type AnyGenericSelector = (getState: GetState) => any;
 
 export interface SelectPartition<
   Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any
+  Selector extends AnySelector<Partitions> | AnyGenericSelector
 > extends BasePartition {
   (getState: GetState): ReturnType<Selector>;
 

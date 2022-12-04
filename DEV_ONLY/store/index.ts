@@ -16,8 +16,8 @@ import {
 
 import { storeParts } from './parts';
 
-const legacy = (state: string = 'original', action: AnyAction) => {
-  return action.type === 'LEGACY' ? 'new' : state;
+const legacy = (state: string = 'legacy', action: AnyAction) => {
+  return action.type === 'LEGACY' ? 'modern' : state;
 };
 
 export type ReduxState = ReturnType<typeof reducer>;
