@@ -1,11 +1,11 @@
 import {
-  COMPOSED_PARTITION,
-  PRIMITIVE_PARTITION,
-  SELECT_PARTITION,
-  UPDATE_PARTITION,
+  COMPOSED_PART,
+  PRIMITIVE_PART,
+  SELECT_PART,
+  UPDATE_PART,
 } from './flags';
 import {
-  getDescendantPartitions,
+  getDescendantParts,
   getId,
   identity,
   is,
@@ -14,7 +14,7 @@ import {
 } from './utils';
 import {
   isComposedConfig,
-  isStatefulPartitionsList,
+  isStatefulPartsList,
   isPrimitiveConfig,
   isSelectConfig,
   isSelector,
@@ -27,25 +27,25 @@ import type {
   AnyGenericSelector,
   AnyGetValue,
   AnySelector,
-  AnySelectPartition,
-  AnyStatefulPartition,
+  AnySelectPart,
+  AnyStatefulPart,
   AnyUpdater,
-  ComposedPartition,
-  ComposedPartitionConfig,
+  ComposedPart,
+  ComposedPartConfig,
   FunctionalUpdate,
   GetState,
-  PartitionAction,
-  PartitionActionConfig,
-  PartitionsState,
-  PrimitivePartition,
-  PrimitivePartitionConfig,
-  SelectPartition,
-  SelectPartitionArgs,
-  SelectPartitionConfig,
+  PartAction,
+  PartActionConfig,
+  PartsState,
+  PrimitivePart,
+  PrimitivePartConfig,
+  SelectPart,
+  SelectPartArgs,
+  SelectPartConfig,
   Tuple,
-  UpdatePartition,
-  UpdatePartitionArgs,
-  UpdatePartitionConfig,
+  UpdatePart,
+  UpdatePartArgs,
+  UpdatePartConfig,
 } from './types';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
 
@@ -76,127 +76,121 @@ function isFunctionalUpdate<State>(
 
 export function createComposedPart<
   Name extends string,
-  Partitions extends Tuple<AnyStatefulPartition>
->(
-  config: ComposedPartitionConfig<Name, Partitions>
-): ComposedPartition<Name, Partitions> {
-  type State = PartitionsState<[...Partitions]>;
+  Parts extends Tuple<AnyStatefulPart>
+>(config: ComposedPartConfig<Name, Parts>): ComposedPart<Name, Parts> {
+  type State = PartsState<[...Parts]>;
 
-  const { name, partitions: basePartitions } = config;
+  const { name, parts: baseParts } = config;
 
-  const descendantPartitions = getDescendantPartitions(basePartitions);
-  const initialState = basePartitions.reduce((state, childPartition) => {
-    state[childPartition.n as keyof State] = childPartition.i;
+  const descendantParts = getDescendantParts(baseParts);
+  const initialState = baseParts.reduce((state, childPart) => {
+    state[childPart.n as keyof State] = childPart.i;
 
     return state;
   }, {} as State);
 
-  descendantPartitions.forEach((descendantPartition) => {
-    const path = [name, ...descendantPartition.p];
-    const type = getPrefixedType(path, descendantPartition.a);
+  descendantParts.forEach((descendantPart) => {
+    const path = [name, ...descendantPart.p];
+    const type = getPrefixedType(path, descendantPart.a);
     const nextReducer = createComposedReducer<State>(
-      descendantPartition.o,
-      descendantPartition.r
+      descendantPart.o,
+      descendantPart.r
     );
 
-    descendantPartition.a = type;
-    descendantPartition.o = name;
-    descendantPartition.p = path;
-    descendantPartition.r = nextReducer;
+    descendantPart.a = type;
+    descendantPart.o = name;
+    descendantPart.p = path;
+    descendantPart.r = nextReducer;
   });
 
-  const partition: ComposedPartition<Name, Partitions> = function actionCreator(
+  const part: ComposedPart<Name, Parts> = function actionCreator(
     nextValue: State
-  ): PartitionAction<State> {
+  ): PartAction<State> {
     return {
-      $$part: partition.id,
-      type: partition.a,
+      $$part: part.id,
+      type: part.a,
       value: nextValue,
     };
   };
 
-  partition.id = getId(name);
-  partition.toString = () => partition.a;
-  partition.update = createPartUpdater(partition);
+  part.id = getId(name);
+  part.toString = () => part.a;
+  part.update = createPartUpdater(part);
 
-  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
-  partition.d = descendantPartitions;
-  partition.f = COMPOSED_PARTITION as ComposedPartition<Name, Partitions>['f'];
-  partition.g = (getState: any) => getState(partition);
-  partition.i = initialState;
-  partition.n = name;
-  partition.o = name;
-  partition.p = [name];
-  partition.r = (state: State = initialState, action: any) =>
-    action.$$part === partition.id && !is(state, action.value)
+  part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
+  part.d = descendantParts;
+  part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
+  part.g = (getState: any) => getState(part);
+  part.i = initialState;
+  part.n = name;
+  part.o = name;
+  part.p = [name];
+  part.r = (state: State = initialState, action: any) =>
+    action.$$part === part.id && !is(state, action.value)
       ? { ...state, ...action.value }
       : state;
-  partition.s = (getState, dispatch, update) => {
+  part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(partition))
+      ? update(getState(part))
       : update;
 
-    return dispatch(partition(nextValue));
+    return dispatch(part(nextValue));
   };
 
-  return partition;
+  return part;
 }
 
 export function createPrimitivePart<Name extends string, State>(
-  config: PrimitivePartitionConfig<Name, State>
-): PrimitivePartition<Name, State> {
+  config: PrimitivePartConfig<Name, State>
+): PrimitivePart<Name, State> {
   const { initialState, name } = config;
 
-  const partition: PrimitivePartition<Name, State> = function actionCreator(
+  const part: PrimitivePart<Name, State> = function actionCreator(
     nextValue: State
-  ): PartitionAction<State> {
+  ): PartAction<State> {
     return {
-      $$part: partition.id,
-      type: partition.a,
+      $$part: part.id,
+      type: part.a,
       value: nextValue,
     };
   };
 
-  partition.id = getId(name);
-  partition.toString = () => partition.a;
-  partition.update = createPartUpdater(partition);
+  part.id = getId(name);
+  part.toString = () => part.a;
+  part.update = createPartUpdater(part);
 
-  partition.a = `UPDATE_${toScreamingSnakeCase(name)}`;
-  partition.d = [partition];
-  partition.f = PRIMITIVE_PARTITION as PrimitivePartition<Name, State>['f'];
-  partition.g = (getState: any) => getState(partition);
-  partition.i = initialState;
-  partition.n = name;
-  partition.o = name;
-  partition.p = [name];
-  partition.r = (state: State = initialState, action: any) =>
-    action.$$part === partition.id && !is(state, action.value)
+  part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
+  part.d = [part];
+  part.f = PRIMITIVE_PART as PrimitivePart<Name, State>['f'];
+  part.g = (getState: any) => getState(part);
+  part.i = initialState;
+  part.n = name;
+  part.o = name;
+  part.p = [name];
+  part.r = (state: State = initialState, action: any) =>
+    action.$$part === part.id && !is(state, action.value)
       ? action.value
       : state;
-  partition.s = (getState, dispatch, update) => {
+  part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(partition))
+      ? update(getState(part))
       : update;
 
-    return dispatch(partition(nextValue));
+    return dispatch(part(nextValue));
   };
 
-  return partition;
+  return part;
 }
 
 export function createSelectPart<
-  Partitions extends Tuple<AnySelectPartition | AnyStatefulPartition>,
-  Selector extends AnySelector<Partitions> | AnyGenericSelector
->(
-  config: SelectPartitionConfig<Partitions, Selector>
-): SelectPartition<Partitions, Selector> {
-  const { get, isEqual = is, partitions } = config;
+  Parts extends Tuple<AnySelectPart | AnyStatefulPart>,
+  Selector extends AnySelector<Parts> | AnyGenericSelector
+>(config: SelectPartConfig<Parts, Selector>): SelectPart<Parts, Selector> {
+  const { get, isEqual = is, parts } = config;
 
-  const select = partitions
+  const select = parts
     ? function select(getState: GetState): ReturnType<Selector> {
-        const values = partitions.map(
-          getState
-        ) as SelectPartitionArgs<Partitions>;
+        const values = parts.map(getState) as SelectPartArgs<Parts>;
 
         // @ts-expect-error - `values` not seen as a tuple.
         return get(...values);
@@ -204,58 +198,53 @@ export function createSelectPart<
     : function select(getState: GetState): ReturnType<Selector> {
         return get(getState);
       };
-  const partition = select as SelectPartition<Partitions, Selector>;
+  const part = select as SelectPart<Parts, Selector>;
 
-  partition.id = getId('SelectPartition');
+  part.id = getId('SelectPart');
 
-  partition.d =
-    partitions && partitions.length
-      ? getDescendantPartitions(partitions)
-      : ALL_DEPENDENCIES;
-  partition.e = isEqual;
-  partition.f = SELECT_PARTITION as SelectPartition<Partitions, Selector>['f'];
-  partition.g = select;
-  partition.s = noop;
+  part.d = parts && parts.length ? getDescendantParts(parts) : ALL_DEPENDENCIES;
+  part.e = isEqual;
+  part.f = SELECT_PART as SelectPart<Parts, Selector>['f'];
+  part.g = select;
+  part.s = noop;
 
-  return partition;
+  return part;
 }
 
 export function createUpdatePart<Updater extends AnyUpdater>(
-  config: UpdatePartitionConfig<Updater>
+  config: UpdatePartConfig<Updater>
 ) {
   const { set } = config;
 
   const update = function update(
     getState: GetState,
     dispatch: Dispatch,
-    ...rest: UpdatePartitionArgs<Updater>
+    ...rest: UpdatePartArgs<Updater>
   ): ReturnType<Updater> {
     return set(getState, dispatch, ...rest);
   };
 
-  const partition = update as UpdatePartition<Updater>;
+  const part = update as UpdatePart<Updater>;
 
-  partition.d = NO_DEPENDENCIES;
-  partition.f = UPDATE_PARTITION as UpdatePartition<Updater>['f'];
-  partition.g = noop;
-  partition.s = set;
+  part.d = NO_DEPENDENCIES;
+  part.f = UPDATE_PART as UpdatePart<Updater>['f'];
+  part.g = noop;
+  part.s = set;
 
-  return partition;
+  return part;
 }
 
-export function createPartUpdater<Partition extends AnyStatefulPartition>(
-  partition: Partition
-) {
-  return function partAction<GetValue extends AnyGetValue<Partition['i']>>(
+export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
+  return function partAction<GetValue extends AnyGetValue<Part['i']>>(
     baseType: string,
     getValue: GetValue = identity as GetValue
   ) {
-    let path = partition.p;
+    let path = part.p;
     let type = getPrefixedType(path, baseType);
 
     function getType() {
-      if (partition.p !== path) {
-        path = partition.p;
+      if (part.p !== path) {
+        path = part.p;
         type = getPrefixedType(path, baseType);
       }
 
@@ -269,11 +258,11 @@ export function createPartUpdater<Partition extends AnyStatefulPartition>(
     ) {
       const update = getValue(...rest);
       const nextValue = isFunctionalUpdate(update)
-        ? update(getState(partition))
+        ? update(getState(part))
         : update;
 
-      return dispatch<PartitionAction<Partition['i']>>({
-        ...partition(nextValue),
+      return dispatch<PartAction<Part['i']>>({
+        ...part(nextValue),
         type: getType(),
       });
     }
@@ -285,72 +274,64 @@ export function createPartUpdater<Partition extends AnyStatefulPartition>(
 export function part<Name extends string, State>(
   name: Name,
   initialState: []
-): PrimitivePartition<Name, any[]>;
+): PrimitivePart<Name, any[]>;
 
-export function part<
-  Name extends string,
-  Partitions extends Tuple<AnyStatefulPartition>
->(name: Name, partitions: Partitions): ComposedPartition<Name, Partitions>;
+export function part<Name extends string, Parts extends Tuple<AnyStatefulPart>>(
+  name: Name,
+  parts: Parts
+): ComposedPart<Name, Parts>;
 export function part<Name extends string, State>(
   name: Name,
   initialState: State
-): PrimitivePartition<Name, State>;
+): PrimitivePart<Name, State>;
 export function part<
-  Partitions extends Tuple<AnyStatefulPartition>,
-  Selector extends (...args: SelectPartitionArgs<Partitions>) => any
->(
-  partitions: Partitions,
-  selector: Selector
-): SelectPartition<Partitions, Selector>;
+  Parts extends Tuple<AnyStatefulPart>,
+  Selector extends (...args: SelectPartArgs<Parts>) => any
+>(parts: Parts, selector: Selector): SelectPart<Parts, Selector>;
 export function part<Selector extends AnyGenericSelector>(
   selector: Selector
-): SelectPartition<[], Selector>;
+): SelectPart<[], Selector>;
 
 export function part<Updater extends AnyUpdater>(
   _: null,
   update: Updater
-): UpdatePartition<Updater>;
+): UpdatePart<Updater>;
 
-export function part<
-  Name extends string,
-  Partitions extends Tuple<AnyStatefulPartition>
->(
-  config: ComposedPartitionConfig<Name, Partitions>
-): ComposedPartition<Name, Partitions>;
+export function part<Name extends string, Parts extends Tuple<AnyStatefulPart>>(
+  config: ComposedPartConfig<Name, Parts>
+): ComposedPart<Name, Parts>;
 export function part<Name extends string, State>(
-  config: PrimitivePartitionConfig<Name, State>
-): PrimitivePartition<Name, State>;
+  config: PrimitivePartConfig<Name, State>
+): PrimitivePart<Name, State>;
 export function part<
-  Partitions extends Tuple<AnyStatefulPartition>,
+  Parts extends Tuple<AnyStatefulPart>,
   Selector extends AnySelector
->(
-  config: SelectPartitionConfig<Partitions, Selector>
-): SelectPartition<Partitions, Selector>;
+>(config: SelectPartConfig<Parts, Selector>): SelectPart<Parts, Selector>;
 export function part<Selector extends AnyGenericSelector>(
-  config: SelectPartitionConfig<[], Selector>
-): SelectPartition<[], Selector>;
+  config: SelectPartConfig<[], Selector>
+): SelectPart<[], Selector>;
 export function part<Updater extends AnyUpdater>(
-  config: UpdatePartitionConfig<Updater>
-): UpdatePartition<Updater>;
+  config: UpdatePartConfig<Updater>
+): UpdatePart<Updater>;
 
 export function part<
   Name extends string,
   State,
-  Partitions extends Tuple<AnyStatefulPartition>,
-  Selector extends AnySelector<Partitions>,
+  Parts extends Tuple<AnyStatefulPart>,
+  Selector extends AnySelector<Parts>,
   GenericSelector extends AnyGenericSelector,
   Updater extends AnyUpdater
 >(
   first:
     | Name
-    | Partitions
-    | ComposedPartitionConfig<Name, Partitions>
-    | PrimitivePartitionConfig<Name, State>
-    | SelectPartitionConfig<Partitions, Selector>
-    | UpdatePartitionConfig<Updater>
+    | Parts
+    | ComposedPartConfig<Name, Parts>
+    | PrimitivePartConfig<Name, State>
+    | SelectPartConfig<Parts, Selector>
+    | UpdatePartConfig<Updater>
     | GenericSelector
     | null,
-  second?: State | Partitions | Selector | Updater
+  second?: State | Parts | Selector | Updater
 ) {
   if (first === null) {
     if (isUpdater(second)) {
@@ -361,10 +342,10 @@ export function part<
   }
 
   if (typeof first === 'string') {
-    if (isStatefulPartitionsList(second)) {
+    if (isStatefulPartsList(second)) {
       return createComposedPart({
         name: first,
-        partitions: second,
+        parts: second,
       });
     }
 
@@ -374,9 +355,9 @@ export function part<
     });
   }
 
-  if (isStatefulPartitionsList(first)) {
+  if (isStatefulPartsList(first)) {
     if (isSelector(second)) {
-      return createSelectPart({ get: second, partitions: first });
+      return createSelectPart({ get: second, parts: first });
     }
 
     throw new Error('Invalid select options provided');

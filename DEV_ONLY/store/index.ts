@@ -11,7 +11,7 @@ import {
   createReducer,
   createPartitioner,
   type Store,
-  type PartitionsStoreExtensions,
+  type PartsStoreExtensions,
 } from '../../src';
 
 import { storeParts } from './parts';
@@ -70,7 +70,7 @@ const reduxStoreEnhancer = composeEnhancers(
 export const store = createStore<
   StoreState,
   AnyAction,
-  PartitionsStoreExtensions<StoreState>,
+  PartsStoreExtensions<StoreState>,
   {}
 >(reducer, reduxStoreEnhancer);
 

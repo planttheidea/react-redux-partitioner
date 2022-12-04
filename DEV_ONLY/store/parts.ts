@@ -1,4 +1,4 @@
-import { part } from '../../src';
+import { part, usePart } from '../../src';
 // import { part } from '../../src';
 
 export const todosPart = part('todos', [] as string[]);
@@ -37,7 +37,7 @@ export const toggleUpdate = activeTogglePart.update(
 
 export const parentPart = part({
   name: 'parent',
-  partitions: [todosPart, titlePart],
+  parts: [todosPart, titlePart],
 });
 
 export const firstNamePart = part('first', 'Testy');
@@ -53,7 +53,7 @@ export const newUserUpdate = idPart.update('NEW_USER_ID');
 
 export const userPart = part({
   name: 'user',
-  partitions: [idPart, namePart],
+  parts: [idPart, namePart],
 });
 
 console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });

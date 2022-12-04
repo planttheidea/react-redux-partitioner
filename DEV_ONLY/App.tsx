@@ -35,7 +35,7 @@ store.subscribe(() => {
   console.log('store changed', store.getState());
 });
 
-store.subscribeToPartition(descriptionPart, () => {
+store.subscribeToPart(descriptionPart, () => {
   console.log('description changed', store.getState(descriptionPart));
 });
 

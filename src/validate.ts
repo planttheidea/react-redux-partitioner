@@ -1,37 +1,37 @@
 import {
-  PARTITION,
-  SELECTABLE_PARTITION,
-  SELECT_PARTITION,
-  STATEFUL_PARTITION,
-  UPDATE_PARTITION,
+  PART,
+  SELECTABLE_PART,
+  SELECT_PART,
+  STATEFUL_PART,
+  UPDATE_PART,
 } from './flags';
 
 import type {
-  AnyPartition,
-  AnySelectablePartition,
+  AnyPart,
+  AnySelectablePart,
   AnySelector,
-  AnySelectPartition,
-  AnyStatefulPartition,
-  AnyUpdatePartition,
+  AnySelectPart,
+  AnyStatefulPart,
+  AnyUpdatePart,
   AnyUpdater,
-  ComposedPartitionConfig,
-  PartitionAction,
-  PrimitivePartitionConfig,
-  SelectPartitionConfig,
-  UpdatePartitionConfig,
+  ComposedPartConfig,
+  PartAction,
+  PrimitivePartConfig,
+  SelectPartConfig,
+  UpdatePartConfig,
 } from './types';
 
 export function isComposedConfig(
   value: any
-): value is ComposedPartitionConfig<string, any> {
-  return typeof value === 'object' && value !== null && 'partitions' in value;
+): value is ComposedPartConfig<string, any> {
+  return typeof value === 'object' && value !== null && 'parts' in value;
 }
 
-export function isPartition(value: any): value is AnyPartition {
-  return typeof value === 'function' && !!(value.f & PARTITION);
+export function isPart(value: any): value is AnyPart {
+  return typeof value === 'function' && !!(value.f & PART);
 }
 
-export function isPartitionAction(value: any): value is PartitionAction {
+export function isPartAction(value: any): value is PartAction {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -41,16 +41,13 @@ export function isPartitionAction(value: any): value is PartitionAction {
 
 export function isPrimitiveConfig(
   value: any
-): value is PrimitivePartitionConfig<string, any> {
+): value is PrimitivePartConfig<string, any> {
   return typeof value === 'object' && value !== null && 'initialState' in value;
 }
 
 export function isSelectConfig(
   value: any
-): value is SelectPartitionConfig<
-  AnyStatefulPartition[],
-  (...args: any[]) => any
-> {
+): value is SelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -59,39 +56,33 @@ export function isSelectConfig(
   );
 }
 
-export function isSelectablePartition(
-  value: any
-): value is AnySelectablePartition {
-  return typeof value === 'function' && !!(value.f & SELECTABLE_PARTITION);
+export function isSelectablePart(value: any): value is AnySelectablePart {
+  return typeof value === 'function' && !!(value.f & SELECTABLE_PART);
 }
 
-export function isSelectablePartitionsList(
-  value: any
-): value is AnyStatefulPartition[] {
-  return Array.isArray(value) && isSelectablePartition(value[0]);
+export function isSelectablePartsList(value: any): value is AnyStatefulPart[] {
+  return Array.isArray(value) && isSelectablePart(value[0]);
 }
 
-export function isSelectPartition(value: any): value is AnySelectPartition {
-  return typeof value === 'function' && !!(value.f & SELECT_PARTITION);
+export function isSelectPart(value: any): value is AnySelectPart {
+  return typeof value === 'function' && !!(value.f & SELECT_PART);
 }
 
 export function isSelector(value: any): value is AnySelector {
   return typeof value === 'function';
 }
 
-export function isStatefulPartition(value: any): value is AnyStatefulPartition {
-  return typeof value === 'function' && !!(value.f & STATEFUL_PARTITION);
+export function isStatefulPart(value: any): value is AnyStatefulPart {
+  return typeof value === 'function' && !!(value.f & STATEFUL_PART);
 }
 
-export function isStatefulPartitionsList(
-  value: any
-): value is AnyStatefulPartition[] {
-  return Array.isArray(value) && isStatefulPartition(value[0]);
+export function isStatefulPartsList(value: any): value is AnyStatefulPart[] {
+  return Array.isArray(value) && isStatefulPart(value[0]);
 }
 
 export function isUpdateConfig(
   value: any
-): value is UpdatePartitionConfig<AnyUpdater> {
+): value is UpdatePartConfig<AnyUpdater> {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -100,8 +91,8 @@ export function isUpdateConfig(
   );
 }
 
-export function isUpdatePartition(value: any): value is AnyUpdatePartition {
-  return typeof value === 'function' && !!(value.f & UPDATE_PARTITION);
+export function isUpdatePart(value: any): value is AnyUpdatePart {
+  return typeof value === 'function' && !!(value.f & UPDATE_PART);
 }
 
 export function isUpdater(value: any): value is AnyUpdater {

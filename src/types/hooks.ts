@@ -1,5 +1,5 @@
-import type { AnyUpdater, UpdatePartitionArgs } from './partition';
+import type { AnyUpdater, UpdatePartArgs } from './part';
 
 export type UseUpdateUpdater<Updater extends AnyUpdater> = (
-  ...args: UpdatePartitionArgs<Updater>
+  ...args: UpdatePartArgs<Updater>
 ) => ReturnType<Updater>;

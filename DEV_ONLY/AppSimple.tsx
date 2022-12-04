@@ -8,7 +8,7 @@ store.subscribe(() => {
   console.log('update store', store.getState());
 });
 
-store.subscribeToPartition(descriptionPart, () => {
+store.subscribeToPart(descriptionPart, () => {
   console.log('description update', store.getState(descriptionPart));
 });
 

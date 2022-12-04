@@ -1,8 +1,4 @@
-import {
-  isPartitionAction,
-  isSelectPartition,
-  isStatefulPartition,
-} from './validate';
+import { isPartAction, isSelectPart, isStatefulPart } from './validate';
 
 import type {
   PreloadedState,
@@ -11,60 +7,58 @@ import type {
   StoreEnhancerStoreCreator,
 } from 'redux';
 import type {
-  AnySelectPartition,
-  AnyStatefulPartition,
+  AnySelectPart,
+  AnyStatefulPart,
   Listener,
   Notifier,
   Notify,
-  PartitionId,
-  PartitionResult,
-  PartitionsState,
-  PartitionsStoreExtensions,
+  PartId,
+  PartResult,
+  PartsState,
+  PartsStoreExtensions,
   Unsubscribe,
 } from './types';
 
-export function createPartitioner<
-  Partitions extends readonly AnyStatefulPartition[]
->(
-  partitions: Partitions,
+export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
+  parts: Parts,
   notifier: Notifier
-): StoreEnhancer<PartitionsStoreExtensions<PartitionsState<Partitions>>> {
-  type PartitionedState = PartitionsState<Partitions>;
-  type PartitionedExtensions = PartitionsStoreExtensions<PartitionedState>;
+): StoreEnhancer<PartsStoreExtensions<PartsState<Parts>>> {
+  type PartedState = PartsState<Parts>;
+  type PartedExtensions = PartsStoreExtensions<PartedState>;
 
   return function enhancer(
-    createStore: StoreEnhancerStoreCreator<PartitionedExtensions>
+    createStore: StoreEnhancerStoreCreator<PartedExtensions>
   ) {
     return function enhance<StoreReducer extends Reducer>(
       reducer: StoreReducer,
-      preloadedState: PreloadedState<PartitionedState> | undefined
+      preloadedState: PreloadedState<PartedState> | undefined
     ) {
-      const partitionMap: Record<string, AnyStatefulPartition> = {};
+      const partMap: Record<string, AnyStatefulPart> = {};
 
-      partitions.forEach((partition) => {
-        partition.d.forEach((descendantPartition) => {
-          partitionMap[descendantPartition.id] = descendantPartition;
+      parts.forEach((part) => {
+        part.d.forEach((descendantPart) => {
+          partMap[descendantPart.id] = descendantPart;
         });
       });
 
       const store = createStore(reducer, preloadedState);
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
-      const slicesToNotify: PartitionId[] = [];
+      const slicesToNotify: PartId[] = [];
 
       let batch = notifier || ((notify: Notify) => notify());
-      let partitionListeners: Record<string, Listener[]> | null = {};
-      let nextPartitionListeners = partitionListeners!;
+      let partListeners: Record<string, Listener[]> | null = {};
+      let nextPartListeners = partListeners!;
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
 
       function dispatch(action: any) {
-        if (isPartitionAction(action)) {
+        if (isPartAction(action)) {
           const id = action.$$part;
 
-          if (!hasPartition(id)) {
+          if (!hasPart(id)) {
             throw new Error(
-              `Partition with id ${id} not found. Is it part of this store?`
+              `Part with id ${id} not found. Is it part of this store?`
             );
           }
 
@@ -84,25 +78,23 @@ export function createPartitioner<
         return result;
       }
 
-      function getState(): PartitionedState;
+      function getState(): PartedState;
       function getState<
-        Partition extends AnySelectPartition | AnyStatefulPartition | undefined
-      >(partition: Partition): PartitionResult<Partition>;
+        Part extends AnySelectPart | AnyStatefulPart | undefined
+      >(part: Part): PartResult<Part>;
       function getState<
-        Partition extends AnySelectPartition | AnyStatefulPartition | undefined
-      >(
-        partition?: Partition
-      ): Partition extends any ? PartitionResult<Partition> : PartitionedState {
-        if (!partition) {
+        Part extends AnySelectPart | AnyStatefulPart | undefined
+      >(part?: Part): Part extends any ? PartResult<Part> : PartedState {
+        if (!part) {
           return originalGetState();
         }
 
-        if (isSelectPartition(partition)) {
-          return partition(getState);
+        if (isSelectPart(part)) {
+          return part(getState);
         }
 
-        if (isStatefulPartition(partition)) {
-          const path = partition.p;
+        if (isStatefulPart(part)) {
+          const path = part.p;
 
           let state: any = originalGetState();
 
@@ -120,8 +112,8 @@ export function createPartitioner<
         return originalGetState();
       }
 
-      function hasPartition(id: PartitionId) {
-        return !!partitionMap[id];
+      function hasPart(id: PartId) {
+        return !!partMap[id];
       }
 
       function notify() {
@@ -131,19 +123,18 @@ export function createPartitioner<
           listeners[index]();
         }
 
-        const allPartitionListeners = (partitionListeners =
-          nextPartitionListeners);
+        const allPartListeners = (partListeners = nextPartListeners);
 
         while (slicesToNotify.length > 0) {
           const id = slicesToNotify.pop()!;
-          const partitionListeners = allPartitionListeners[id];
+          const partListeners = allPartListeners[id];
 
-          if (!partitionListeners) {
+          if (!partListeners) {
             continue;
           }
 
-          for (let index = 0; index < partitionListeners.length; ++index) {
-            partitionListeners[index]();
+          for (let index = 0; index < partListeners.length; ++index) {
+            partListeners[index]();
           }
         }
       }
@@ -172,10 +163,7 @@ export function createPartitioner<
         };
       }
 
-      function subscribeToPartition(
-        partition: AnyStatefulPartition,
-        listener: Listener
-      ) {
+      function subscribeToPart(part: AnyStatefulPart, listener: Listener) {
         if (typeof listener !== 'function') {
           throw new Error(
             `Expected the listener to be a function. Instead, received: '${typeof listener}'`
@@ -183,7 +171,7 @@ export function createPartitioner<
         }
 
         let subscribed = true;
-        updatePartitionListeners(partition.id, listener, true);
+        updatePartListeners(part.id, listener, true);
 
         return () => {
           if (!subscribed) {
@@ -191,40 +179,40 @@ export function createPartitioner<
           }
 
           subscribed = false;
-          updatePartitionListeners(partition.id, listener, false);
+          updatePartListeners(part.id, listener, false);
         };
       }
 
-      function updatePartitionListeners(
-        id: PartitionId,
+      function updatePartListeners(
+        id: PartId,
         listener: Listener,
         add: boolean
       ) {
         if (
-          nextPartitionListeners === partitionListeners ||
-          !partitionListeners ||
-          !partitionListeners[id]
+          nextPartListeners === partListeners ||
+          !partListeners ||
+          !partListeners[id]
         ) {
-          const listeners = nextPartitionListeners[id];
+          const listeners = nextPartListeners[id];
 
-          nextPartitionListeners = {
-            ...nextPartitionListeners,
+          nextPartListeners = {
+            ...nextPartListeners,
             [id]: listeners ? listeners.slice(0) : [],
           };
         }
 
         if (add) {
-          nextPartitionListeners[id].push(listener);
+          nextPartListeners[id].push(listener);
         } else {
-          const listeners = nextPartitionListeners[id];
+          const listeners = nextPartListeners[id];
 
           listeners.splice(listeners.indexOf(listener), 1);
 
           if (!listeners.length) {
-            delete nextPartitionListeners[id];
+            delete nextPartListeners[id];
           }
 
-          partitionListeners = null;
+          partListeners = null;
         }
       }
 
@@ -246,8 +234,8 @@ export function createPartitioner<
         dispatch,
         getState,
         subscribe,
-        subscribeToPartition,
+        subscribeToPart,
       };
     };
-  } as StoreEnhancer<PartitionedExtensions>;
+  } as StoreEnhancer<PartedExtensions>;
 }

@@ -1,7 +1,7 @@
 // @ts-expect-error - `ActionTypes` not on public redux API
 import { __DO_NOT_USE__ActionTypes as ActionTypes } from 'redux';
 import { is } from './utils';
-import { isPartitionAction } from './validate';
+import { isPartAction } from './validate';
 
 import type {
   Action,
@@ -10,7 +10,7 @@ import type {
   ReducersMapObject,
   StateFromReducersMapObject,
 } from 'redux';
-import type { AnyStatefulPartition, PartitionsState } from './types';
+import type { AnyStatefulPart, PartsState } from './types';
 
 export function isReducersMap(
   value: any
@@ -19,10 +19,10 @@ export function isReducersMap(
 }
 
 export function combineReduxReducers<
-  PartitionsState,
+  PartsState,
   DispatchedAction extends Action = AnyAction
 >(
-  reducers: ReducersMapObject<PartitionsState, DispatchedAction>
+  reducers: ReducersMapObject<PartsState, DispatchedAction>
 ): Reducer<StateFromReducersMapObject<typeof reducers>, DispatchedAction> {
   type ReducerState = StateFromReducersMapObject<typeof reducers>;
 
@@ -65,9 +65,7 @@ export function combineReduxReducers<
         throw new Error(
           `When called with an action of type ${
             actionType ? `"${String(actionType)}"` : '(unknown type)'
-          }, the partition reducer for key "${String(
-            key
-          )}" returned undefined. ` +
+          }, the part reducer for key "${String(key)}" returned undefined. ` +
             `To ignore an action, you must explicitly return the previous state. ` +
             `If you want this reducer to hold no value, you can return null instead of undefined.`
         );
@@ -81,84 +79,84 @@ export function combineReduxReducers<
   } as Reducer<ReducerState, DispatchedAction>;
 }
 
-export function createPartitionsReducer<
-  Partitions extends readonly AnyStatefulPartition[],
+export function createPartsReducer<
+  Parts extends readonly AnyStatefulPart[],
   DispatchedAction extends AnyAction
->(partitions: Partitions) {
-  type State = PartitionsState<Partitions>;
+>(parts: Parts) {
+  type State = PartsState<Parts>;
 
-  const partitionMap: Record<string, AnyStatefulPartition> = {};
-  const initialState = partitions.reduce<State>((initialState, partition) => {
-    initialState[partition.n as keyof State] = partition.i;
+  const partMap: Record<string, AnyStatefulPart> = {};
+  const initialState = parts.reduce<State>((initialState, part) => {
+    initialState[part.n as keyof State] = part.i;
 
     return initialState;
   }, {} as State);
 
-  const allPartitions = partitions.reduce(
-    (partitionList, partition) => [...partitionList, ...partition.d],
-    [] as AnyStatefulPartition[]
+  const allParts = parts.reduce(
+    (partList, part) => [...partList, ...part.d],
+    [] as AnyStatefulPart[]
   );
 
-  allPartitions.forEach((partition) => {
-    partitionMap[partition.id] = partition;
+  allParts.forEach((part) => {
+    partMap[part.id] = part;
   });
 
-  return function partitionsReducer(
+  return function partsReducer(
     state: State = initialState,
     action: DispatchedAction
   ): State {
-    if (!isPartitionAction(action)) {
+    if (!isPartAction(action)) {
       return state;
     }
 
-    const partition = partitionMap[action.$$part];
-    const owner = partition.o;
+    const part = partMap[action.$$part];
+    const owner = part.o;
     const prev = state[owner];
-    const next = partition.r(prev, action);
+    const next = part.r(prev, action);
 
     return is(prev, next) ? state : { ...state, [owner]: next };
   };
 }
 
 export function createReducer<
-  Partitions extends readonly AnyStatefulPartition[],
+  Parts extends readonly AnyStatefulPart[],
   OtherReducerState,
   DispatchedAction extends AnyAction
 >(
-  partitions: Partitions,
+  parts: Parts,
   otherReducer?:
     | Reducer<OtherReducerState, DispatchedAction>
     | ReducersMapObject<OtherReducerState, DispatchedAction>
     | undefined
 ) {
-  const partitionsReducer = createPartitionsReducer(partitions);
+  const partsReducer = createPartsReducer(parts);
 
-  type PartitionReducerState = PartitionsState<Partitions>;
-  type CombinedState = Omit<OtherReducerState, keyof PartitionReducerState> &
-    PartitionReducerState;
+  type PartReducerState = PartsState<Parts>;
+  type CombinedState = Omit<OtherReducerState, keyof PartReducerState> &
+    PartReducerState;
 
   if (!otherReducer) {
-    return partitionsReducer as Reducer<CombinedState, DispatchedAction>;
+    return partsReducer as Reducer<CombinedState, DispatchedAction>;
   }
 
   if (isReducersMap(otherReducer)) {
-    // @ts-expect-error - PartitionsState typing is a bit wonky
+    // @ts-expect-error - PartsState typing is a bit wonky
     otherReducer = combineReduxReducers<OtherState, DispatchedAction>(
       otherReducer
     );
   }
 
-  const initialState = partitionsReducer(undefined, { type: ActionTypes.INIT });
+  const initialState = partsReducer(undefined, { type: ActionTypes.INIT });
 
   return function reducer(
     state: CombinedState = initialState as CombinedState,
     action: DispatchedAction
   ): CombinedState {
-    if (isPartitionAction(action)) {
-      const nextPartitionState = partitionsReducer(state, action);
+    if (isPartAction(action)) {
+      const nextPartState = partsReducer(state, action);
 
-      if (!is(state, nextPartitionState)) {
-        return { ...state, ...nextPartitionState };
+      if (!is(state, nextPartState)) {
+        return { ...state, ...nextPartState };
       }
     }
 

@@ -1,30 +1,26 @@
-import type {
-  AnySelectPartition,
-  AnyStatefulPartition,
-  PartitionId,
-} from './types';
+import type { AnySelectPart, AnyStatefulPart, PartId } from './types';
 
-export function getDescendantPartitions(
-  partitions:
-    | Array<AnySelectPartition | AnyStatefulPartition>
-    | ReadonlyArray<AnySelectPartition | AnyStatefulPartition>
-): AnyStatefulPartition[] {
-  const descendantPartitions: AnyStatefulPartition[] = [];
+export function getDescendantParts(
+  parts:
+    | Array<AnySelectPart | AnyStatefulPart>
+    | ReadonlyArray<AnySelectPart | AnyStatefulPart>
+): AnyStatefulPart[] {
+  const descendantParts: AnyStatefulPart[] = [];
 
-  partitions.forEach((partition) => {
-    partition.d.forEach((descendantPartition) => {
-      if (!~descendantPartitions.indexOf(descendantPartition)) {
-        descendantPartitions.push(descendantPartition);
+  parts.forEach((part) => {
+    part.d.forEach((descendantPart) => {
+      if (!~descendantParts.indexOf(descendantPart)) {
+        descendantParts.push(descendantPart);
       }
     });
   });
 
-  return descendantPartitions;
+  return descendantParts;
 }
 
 let hashId = 0;
 
-export function getId(name: string): PartitionId {
+export function getId(name: string): PartId {
   const string = `${name}_${hashId++}`;
 
   let index = string.length;
