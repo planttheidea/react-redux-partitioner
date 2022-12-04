@@ -21,7 +21,7 @@ import {
   isUpdater,
 } from './validate';
 
-import type { AnyAction, Dispatch } from 'redux';
+import type { AnyAction, Dispatch, Reducer } from 'redux';
 import type {
   AnyGenericSelector,
   AnySelector,
@@ -44,6 +44,18 @@ import type {
   UpdatePartitionConfig,
 } from './types';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
+
+function createComposedReducer<State, OriginalReducer extends Reducer>(
+  name: keyof State,
+  originalReducer: OriginalReducer
+) {
+  return function reduce(state: State, action: AnyAction): State {
+    return {
+      ...state,
+      [name]: originalReducer(state[name], action),
+    };
+  };
+}
 
 function isFunctionalUpdate<State>(
   value: any
@@ -69,25 +81,20 @@ export function createComposedPart<
   }, {} as State);
 
   descendantPartitions.forEach((descendantPartition) => {
-    const originalReducer = descendantPartition.r;
-    const parentName = descendantPartition.o;
     const path = [name, ...descendantPartition.p];
-
+    const newTypePrefix = path.slice(0, path.length - 1).join('.');
     const splitType = descendantPartition.a.split('/');
     const baseType =
       splitType.length > 1 ? splitType[splitType.length - 1] : splitType[0];
-    const newTypePrefix = path.slice(0, path.length - 1).join('.');
+    const nextReducer = createComposedReducer(
+      descendantPartition.o,
+      descendantPartition.r
+    );
 
     descendantPartition.a = `${newTypePrefix}/${baseType}`;
     descendantPartition.o = name;
     descendantPartition.p = path;
-    descendantPartition.r = (
-      state: Record<string, any>,
-      action: AnyAction
-    ) => ({
-      ...state,
-      [parentName]: originalReducer(state[parentName], action),
-    });
+    descendantPartition.r = nextReducer;
   });
 
   const partition: ComposedPartition<Name, Partitions> = function actionCreator(

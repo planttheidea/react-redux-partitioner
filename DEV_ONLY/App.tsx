@@ -4,12 +4,6 @@ import {
   useDispatch,
   useStore,
 } from 'react-redux';
-// import {
-//   Provider as ReduxPartitionsProvider,
-// usePart,
-// usePartUpdate,
-// usePartValue,
-// } from './react';
 import {
   // store,
   storeConfigured as store,
