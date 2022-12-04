@@ -21,6 +21,7 @@ import type {
   UseUpdateUpdater,
 } from './types';
 import { is } from './utils';
+import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
 
 function noop(): undefined {
   return;
@@ -90,37 +91,43 @@ export function usePartValue<Partition extends AnyPartition>(
   const store = context.store as Store;
 
   const subscribe = useMemo(() => {
-    if (partition && partition.d && partition.d.length) {
-      if (partition.d.length === 1) {
-        return (listener: Listener) =>
-          store.subscribeToPartition(
-            partition as AnyPrimitivePartition,
-            listener
-          );
-      }
+    const dependencies = partition.d;
 
-      return (listener: Listener): Unsubscribe => {
-        let subscribed = true;
-
-        const unsubscribes = partition.d.map((partition) =>
-          store.subscribeToPartition(partition, listener)
-        );
-
-        return () => {
-          if (!subscribed) {
-            return;
-          }
-
-          subscribed = false;
-
-          for (let index = 0; index < unsubscribes.length; ++index) {
-            unsubscribes[index]();
-          }
-        };
-      };
+    if (dependencies === ALL_DEPENDENCIES) {
+      return store.subscribe;
     }
 
-    return noopSubscribe;
+    if (dependencies === NO_DEPENDENCIES || !dependencies.length) {
+      return noopSubscribe;
+    }
+
+    if (dependencies.length === 1) {
+      return (listener: Listener) =>
+        store.subscribeToPartition(
+          partition as AnyPrimitivePartition,
+          listener
+        );
+    }
+
+    return (listener: Listener): Unsubscribe => {
+      let subscribed = true;
+
+      const unsubscribes = dependencies.map((dependency) =>
+        store.subscribeToPartition(dependency, listener)
+      );
+
+      return () => {
+        if (!subscribed) {
+          return;
+        }
+
+        subscribed = false;
+
+        for (let index = 0; index < unsubscribes.length; ++index) {
+          unsubscribes[index]();
+        }
+      };
+    };
   }, [store, partition]);
 
   const getSnapshot = useMemo(
