@@ -9,7 +9,7 @@ import type {
 import type { Listener, Unsubscribe } from './subscription';
 
 export interface GetState<State = any> {
-  (): State;
+  <CompleteState extends State>(): CompleteState;
   <Part extends AnyPart>(part: Part): PartResult<Part>;
 }
 

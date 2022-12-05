@@ -14,10 +14,10 @@ import type {
   AnyStatefulPart,
   AnyUpdatePart,
   AnyUpdater,
+  BoundSelectPartConfig,
   ComposedPartConfig,
   PartAction,
   PrimitivePartConfig,
-  SelectPartConfig,
   UpdatePartConfig,
 } from './types';
 
@@ -45,14 +45,15 @@ export function isPrimitiveConfig(
   return typeof value === 'object' && value !== null && 'initialState' in value;
 }
 
-export function isSelectConfig(
+export function isBoundSelectConfig(
   value: any
-): value is SelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
+): value is BoundSelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
   return (
     typeof value === 'object' &&
     value !== null &&
     'get' in value &&
-    !('set' in value)
+    !('set' in value) &&
+    'parts' in value
   );
 }
 
@@ -78,6 +79,18 @@ export function isStatefulPart(value: any): value is AnyStatefulPart {
 
 export function isStatefulPartsList(value: any): value is AnyStatefulPart[] {
   return Array.isArray(value) && isStatefulPart(value[0]);
+}
+
+export function isUnboundSelectConfig(
+  value: any
+): value is BoundSelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'get' in value &&
+    !('set' in value) &&
+    !('parts' in value)
+  );
 }
 
 export function isUpdateConfig(

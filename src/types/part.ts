@@ -127,25 +127,31 @@ export type PartResult<Part> = Part extends AnyStatefulPart
 
 type MergeSelectPartArgs<
   Args extends any[],
-  Parts extends Tuple<AnySelectPart | AnyStatefulPart>
+  Parts extends Tuple<AnySelectablePart>
 > = Parts extends [
-  infer Head extends AnySelectPart | AnyStatefulPart,
-  ...infer Tail extends Tuple<AnySelectPart | AnyStatefulPart>
+  infer Head extends AnySelectablePart,
+  ...infer Tail extends Tuple<AnySelectablePart>
 ]
   ? MergeSelectPartArgs<[...Args, PartResult<Head>], Tail>
   : Args;
 
-export type SelectPartArgs<
-  Parts extends Tuple<AnySelectPart | AnyStatefulPart>
-> = MergeSelectPartArgs<[], [...Parts]>;
+export type SelectPartArgs<Parts extends Tuple<AnySelectablePart>> =
+  MergeSelectPartArgs<[], [...Parts]>;
 
-export interface SelectPartConfig<
-  Parts extends Tuple<AnySelectPart | AnyStatefulPart>,
-  Selector extends AnySelector<Parts> | AnyGenericSelector
+export interface BoundSelectPartConfig<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>
 > extends BasePartConfig {
   get: Selector;
   isEqual?: IsEqual<ReturnType<Selector>>;
-  parts?: Parts;
+  parts: Parts;
+}
+
+export interface UnboundSelectPartConfig<Selector extends AnyGenericSelector>
+  extends BasePartConfig {
+  get: Selector;
+  isEqual?: IsEqual<ReturnType<Selector>>;
+  parts?: undefined | null;
 }
 
 export type AnySelector<
@@ -153,16 +159,27 @@ export type AnySelector<
 > = (...args: SelectPartArgs<Parts>) => any;
 export type AnyGenericSelector = (getState: GetState) => any;
 
-export interface SelectPart<
-  Parts extends Tuple<AnySelectPart | AnyStatefulPart>,
-  Selector extends AnySelector<Parts> | AnyGenericSelector
-> extends BasePart {
+export interface BaseSelectPart extends BasePart {
+  f: typeof SELECT_PART;
+  s: () => void;
+}
+
+export interface UnboundSelectPart<Selector extends AnyGenericSelector>
+  extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
   e: IsEqual<ReturnType<Selector>>;
-  f: typeof SELECT_PART;
   g: Get<ReturnType<Selector>>;
-  s: () => void;
+}
+
+export interface BoundSelectPart<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>
+> extends BaseSelectPart {
+  (getState: GetState): ReturnType<Selector>;
+
+  e: IsEqual<ReturnType<Selector>>;
+  g: Get<ReturnType<Selector>>;
 }
 
 export type AnyUpdater = (
@@ -206,10 +223,9 @@ export type AnyStatefulPart = StatefulPart<
   readonly AnyStatefulPart[],
   boolean
 >;
-export type AnySelectPart = SelectPart<
-  Array<AnySelectPart | AnyStatefulPart>,
-  AnySelector
->;
+export type AnySelectPart =
+  | BoundSelectPart<AnySelectablePart[], AnySelector>
+  | UnboundSelectPart<AnyGenericSelector>;
 export type AnySelectablePart = AnyStatefulPart | AnySelectPart;
 export type AnyUpdatePart = UpdatePart<AnyUpdater>;
 export type AnyUpdateablePart = AnyStatefulPart | AnyUpdatePart;

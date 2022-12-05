@@ -1,3 +1,4 @@
+import { ReduxState } from '.';
 import { part, usePart } from '../../src';
 // import { part } from '../../src';
 
@@ -57,7 +58,9 @@ console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
 
 export const userSelect = part(
   (getState) =>
-    `${getState(fullNameSelect)} (${getState(idPart)}) - ${getState().legacy}`
+    `${getState(fullNameSelect)} (${getState(idPart)}) - ${
+      getState<ReduxState>().legacy
+    }`
 );
 
 export const descriptionPart = part({

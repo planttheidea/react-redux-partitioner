@@ -13,11 +13,12 @@ import {
   toScreamingSnakeCase,
 } from './utils';
 import {
+  isBoundSelectConfig,
   isComposedConfig,
   isStatefulPartsList,
   isPrimitiveConfig,
-  isSelectConfig,
   isSelector,
+  isUnboundSelectConfig,
   isUpdateConfig,
   isUpdater,
 } from './validate';
@@ -26,26 +27,25 @@ import type { AnyAction, Dispatch, Reducer } from 'redux';
 import type {
   AnyGenericSelector,
   AnyGetValue,
+  AnySelectablePart,
   AnySelector,
-  AnySelectPart,
   AnyStatefulPart,
   AnyUpdater,
+  BoundSelectPart,
+  BoundSelectPartConfig,
   ComposedPart,
   ComposedPartConfig,
   FunctionalUpdate,
   GetState,
-  GetValueUpdater,
   PartAction,
-  PartActionConfig,
-  PartResult,
   PartsState,
   PrimitivePart,
   PrimitivePartConfig,
-  SelectPart,
   SelectPartArgs,
-  SelectPartConfig,
   StatefulPartUpdater,
   Tuple,
+  UnboundSelectPart,
+  UnboundSelectPartConfig,
   UpdatePart,
   UpdatePartArgs,
   UpdatePartConfig,
@@ -134,7 +134,7 @@ export function createComposedPart<
       : state;
   part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(part))
+      ? update(getState(part) as State)
       : update;
 
     return dispatch(part(nextValue));
@@ -176,7 +176,7 @@ export function createPrimitivePart<Name extends string, State>(
       : state;
   part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(part))
+      ? update(getState(part) as State)
       : update;
 
     return dispatch(part(nextValue));
@@ -185,29 +185,47 @@ export function createPrimitivePart<Name extends string, State>(
   return part;
 }
 
-export function createSelectPart<
-  Parts extends Tuple<AnySelectPart | AnyStatefulPart>,
-  Selector extends AnySelector<Parts> | AnyGenericSelector
->(config: SelectPartConfig<Parts, Selector>): SelectPart<Parts, Selector> {
+export function createBoundSelectPart<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>
+>(config: BoundSelectPartConfig<Parts, Selector>) {
   const { get, isEqual = is, parts } = config;
 
-  const select = parts
-    ? function select(getState: GetState): ReturnType<Selector> {
-        const values = parts.map(getState) as SelectPartArgs<Parts>;
+  const select = function select(getState: GetState): ReturnType<Selector> {
+    const values = parts.map(getState) as SelectPartArgs<Parts>;
 
-        // @ts-expect-error - `values` not seen as a tuple.
-        return get(...values);
-      }
-    : function select(getState: GetState): ReturnType<Selector> {
-        return get(getState);
-      };
-  const part = select as SelectPart<Parts, Selector>;
+    return get(...values);
+  };
+
+  const part = select as BoundSelectPart<Parts, Selector>;
 
   part.id = getId('SelectPart');
 
-  part.d = parts && parts.length ? getDescendantParts(parts) : ALL_DEPENDENCIES;
+  part.d = getDescendantParts(parts);
   part.e = isEqual;
-  part.f = SELECT_PART as SelectPart<Parts, Selector>['f'];
+  part.f = SELECT_PART as BoundSelectPart<Parts, Selector>['f'];
+  part.g = select;
+  part.s = noop;
+
+  return part;
+}
+
+export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
+  config: UnboundSelectPartConfig<Selector>
+): UnboundSelectPart<Selector> {
+  const { get, isEqual = is } = config;
+
+  const select = function select(getState: GetState): ReturnType<Selector> {
+    return get(getState);
+  };
+
+  const part = select as UnboundSelectPart<Selector>;
+
+  part.id = getId('SelectPart');
+
+  part.d = ALL_DEPENDENCIES;
+  part.e = isEqual;
+  part.f = SELECT_PART as UnboundSelectPart<Selector>['f'];
   part.g = select;
   part.s = noop;
 
@@ -288,12 +306,12 @@ export function part<Name extends string, State>(
   initialState: State
 ): PrimitivePart<Name, State>;
 export function part<
-  Parts extends Tuple<AnyStatefulPart>,
+  Parts extends Tuple<AnySelectablePart>,
   Selector extends (...args: SelectPartArgs<Parts>) => any
->(parts: Parts, selector: Selector): SelectPart<Parts, Selector>;
+>(parts: Parts, selector: Selector): BoundSelectPart<Parts, Selector>;
 export function part<Selector extends AnyGenericSelector>(
   selector: Selector
-): SelectPart<[], Selector>;
+): UnboundSelectPart<Selector>;
 
 export function part<Updater extends AnyUpdater>(
   _: null,
@@ -307,12 +325,14 @@ export function part<Name extends string, State>(
   config: PrimitivePartConfig<Name, State>
 ): PrimitivePart<Name, State>;
 export function part<
-  Parts extends Tuple<AnyStatefulPart>,
+  Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector
->(config: SelectPartConfig<Parts, Selector>): SelectPart<Parts, Selector>;
+>(
+  config: BoundSelectPartConfig<Parts, Selector>
+): BoundSelectPart<Parts, Selector>;
 export function part<Selector extends AnyGenericSelector>(
-  config: SelectPartConfig<[], Selector>
-): SelectPart<[], Selector>;
+  config: UnboundSelectPartConfig<Selector>
+): UnboundSelectPart<Selector>;
 export function part<Updater extends AnyUpdater>(
   config: UpdatePartConfig<Updater>
 ): UpdatePart<Updater>;
@@ -330,7 +350,8 @@ export function part<
     | Parts
     | ComposedPartConfig<Name, Parts>
     | PrimitivePartConfig<Name, State>
-    | SelectPartConfig<Parts, Selector>
+    | BoundSelectPartConfig<Parts, Selector>
+    | UnboundSelectPartConfig<GenericSelector>
     | UpdatePartConfig<Updater>
     | GenericSelector
     | null,
@@ -360,30 +381,34 @@ export function part<
 
   if (isStatefulPartsList(first)) {
     if (isSelector(second)) {
-      return createSelectPart({ get: second, parts: first });
+      return createBoundSelectPart({ get: second, parts: first });
     }
 
     throw new Error('Invalid select options provided');
-  }
-
-  if (isSelectConfig(first)) {
-    return createSelectPart(first);
-  }
-
-  if (isUpdateConfig(first)) {
-    return createUpdatePart(first);
-  }
-
-  if (isComposedConfig(first)) {
-    return createComposedPart(first);
   }
 
   if (isPrimitiveConfig(first)) {
     return createPrimitivePart(first);
   }
 
+  if (isUpdateConfig(first)) {
+    return createUpdatePart(first);
+  }
+
+  if (isBoundSelectConfig(first)) {
+    return createBoundSelectPart(first as any);
+  }
+
+  if (isUnboundSelectConfig(first)) {
+    return createUnboundSelectPart(first as any);
+  }
+
+  if (isComposedConfig(first)) {
+    return createComposedPart(first);
+  }
+
   if (isSelector(first)) {
-    return createSelectPart({ get: first });
+    return createUnboundSelectPart({ get: first });
   }
 
   throw new Error('Invalid config provided');
