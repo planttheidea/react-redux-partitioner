@@ -93,7 +93,7 @@ export function createPartsReducer<
   }, {} as State);
 
   const allParts = parts.reduce(
-    (partList, part) => [...partList, ...part.d],
+    (partList, part) => [...partList, part, ...part.d],
     [] as AnyStatefulPart[]
   );
 

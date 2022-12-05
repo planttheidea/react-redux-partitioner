@@ -28,6 +28,7 @@ import {
   deactivateUpdate,
   descriptionPart,
   firstNamePart,
+  fullNameProxy,
   fullNameSelect,
   idPart,
   lastNamePart,
@@ -36,7 +37,7 @@ import {
   titlePart,
   todosPart,
   toggleUpdate,
-  userSelect,
+  userProxy,
 } from './store/parts';
 
 store.subscribe(() => {
@@ -178,7 +179,7 @@ function Toggle() {
 }
 
 // function User() {
-//   const [user] = usePart(userSelect);
+//   const [user] = usePart(userProxy);
 
 //   console.count('user');
 
@@ -193,13 +194,15 @@ function Toggle() {
 // }
 
 interface UserProps {
-  user: string;
+  user: UsePartPair<typeof userProxy>;
 }
 
-const User = withPartValues({ user: userSelect })(function User({
-  user,
+const User = withParts({ user: userProxy })(function User({
+  user: [user, setUser],
 }: UserProps) {
   console.count('user');
+
+  useAfterTimeout(() => setUser({ id: 'nextId', name: 'New Name' }), 3500);
 
   return (
     <div>
@@ -279,10 +282,12 @@ const UserName = withParts({
 });
 
 function UserNameStoreSelector() {
-  const [fullName] = usePart(fullNameSelect);
+  const [fullName, setFullName] = usePart(fullNameProxy);
   // const fullName = usePartValue(fullNameSelect);
 
   console.count('stored selector');
+
+  useAfterTimeout(() => setFullName({ last: 'Testosterone' }), 7000);
 
   return <div>Stored selector: {fullName}</div>;
 }

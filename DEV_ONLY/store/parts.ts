@@ -45,6 +45,20 @@ export const fullNameSelect = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`
 );
+export const fullNameProxy = part(
+  [firstNamePart, lastNamePart],
+  (firstName, lastName) => `${firstName} ${lastName}`,
+  (_, dispatch, { first, last }: { first?: string; last?: string }) => {
+    if (first) {
+      dispatch(firstNamePart(first));
+    }
+
+    if (last) {
+      dispatch(lastNamePart(last));
+    }
+  }
+);
+
 export const idPart = part('id', 'asdfsfdasfdsdsgafds');
 
 export const newUserUpdate = idPart.update('NEW_USER_ID');
@@ -56,11 +70,18 @@ export const userPart = part({
 
 console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
 
-export const userSelect = part(
+export const userProxy = part(
   (getState) =>
-    `${getState(fullNameSelect)} (${getState(idPart)}) - ${
+    `${getState(fullNameProxy)} (${getState(idPart)}) - ${
       getState<ReduxState>().legacy
-    }`
+    }`,
+  (_, dispatch, { id, name }: { id?: string; name?: string }) => {
+    if (id && name) {
+      const [first, last] = name.split(' ');
+
+      dispatch(userPart({ id, name: { first, last } }));
+    }
+  }
 );
 
 export const descriptionPart = part({

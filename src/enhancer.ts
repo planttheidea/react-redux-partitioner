@@ -1,4 +1,9 @@
-import { isPartAction, isSelectPart, isStatefulPart } from './validate';
+import {
+  isComposedPart,
+  isPartAction,
+  isSelectablePart,
+  isStatefulPart,
+} from './validate';
 
 import type {
   PreloadedState,
@@ -39,12 +44,14 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         part.d.forEach((descendantPart) => {
           partMap[descendantPart.id] = descendantPart;
         });
+
+        partMap[part.id] = part;
       });
 
       const store = createStore(reducer, preloadedState);
+      const notifyPartsQueue: PartId[] = [];
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
-      const slicesToNotify: PartId[] = [];
 
       let batch = notifier || ((notify: Notify) => notify());
       let partListeners: Record<string, Listener[]> | null = {};
@@ -56,14 +63,20 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         if (isPartAction(action)) {
           const id = action.$$part;
 
-          if (!hasPart(id)) {
+          const part = partMap[id];
+
+          if (!part) {
             throw new Error(
               `Part with id ${id} not found. Is it part of this store?`
             );
           }
 
-          if (!~slicesToNotify.indexOf(id)) {
-            slicesToNotify.push(id);
+          queueNotifyPart(part);
+
+          if (isComposedPart(part)) {
+            for (let index = 0; index < part.d.length; ++index) {
+              queueNotifyPart(part.d[index]);
+            }
           }
         }
 
@@ -89,10 +102,6 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           return originalGetState();
         }
 
-        if (isSelectPart(part)) {
-          return part(getState);
-        }
-
         if (isStatefulPart(part)) {
           const path = part.p;
 
@@ -109,11 +118,11 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           return state;
         }
 
-        return originalGetState();
-      }
+        if (isSelectablePart(part)) {
+          return part.g(getState);
+        }
 
-      function hasPart(id: PartId) {
-        return !!partMap[id];
+        return originalGetState();
       }
 
       function notify() {
@@ -125,8 +134,8 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
 
         const allPartListeners = (partListeners = nextPartListeners);
 
-        while (slicesToNotify.length > 0) {
-          const id = slicesToNotify.pop()!;
+        while (notifyPartsQueue.length > 0) {
+          const id = notifyPartsQueue.pop()!;
           const partListeners = allPartListeners[id];
 
           if (!partListeners) {
@@ -141,6 +150,12 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
 
       function notifyListeners() {
         batch(notify);
+      }
+
+      function queueNotifyPart(part: AnyStatefulPart) {
+        if (!~notifyPartsQueue.indexOf(part.id)) {
+          notifyPartsQueue.push(part.id);
+        }
       }
 
       function subscribe(listener: Listener): Unsubscribe {

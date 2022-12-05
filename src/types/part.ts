@@ -2,6 +2,7 @@ import type { Dispatch } from 'redux';
 import type {
   COMPOSED_PART,
   PRIMITIVE_PART,
+  PROXY_PART,
   SELECT_PART,
   STATEFUL_PART,
   UPDATE_PART,
@@ -151,7 +152,7 @@ export interface UnboundSelectPartConfig<Selector extends AnyGenericSelector>
   extends BasePartConfig {
   get: Selector;
   isEqual?: IsEqual<ReturnType<Selector>>;
-  parts?: undefined | null;
+  parts?: never;
 }
 
 export type AnySelector<
@@ -168,6 +169,7 @@ export interface UnboundSelectPart<Selector extends AnyGenericSelector>
   extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
+  d: [];
   e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
 }
@@ -178,6 +180,7 @@ export interface BoundSelectPart<
 > extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
+  d: AnyStatefulPart[];
   e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
 }
@@ -214,9 +217,16 @@ export interface UpdatePart<Updater extends AnyUpdater> extends BasePart {
   s: Updater;
 }
 
-export type AnyPart = AnyStatefulPart | AnySelectPart | AnyUpdatePart;
+export type AnyPart =
+  | AnyStatefulPart
+  | AnySelectPart
+  | AnyUpdatePart
+  | AnyProxyPart;
 export type AnyComposedPart = ComposedPart<string, AnyStatefulPart[]>;
 export type AnyPrimitivePart = PrimitivePart<string, any>;
+export type AnyProxyPart =
+  | BoundProxyPart<AnySelectablePart[], AnySelector, AnyUpdater>
+  | UnboundProxyPart<AnySelector, AnyUpdater>;
 export type AnyStatefulPart = StatefulPart<
   string,
   any,
@@ -226,9 +236,9 @@ export type AnyStatefulPart = StatefulPart<
 export type AnySelectPart =
   | BoundSelectPart<AnySelectablePart[], AnySelector>
   | UnboundSelectPart<AnyGenericSelector>;
-export type AnySelectablePart = AnyStatefulPart | AnySelectPart;
+export type AnySelectablePart = AnyStatefulPart | AnySelectPart | AnyProxyPart;
 export type AnyUpdatePart = UpdatePart<AnyUpdater>;
-export type AnyUpdateablePart = AnyStatefulPart | AnyUpdatePart;
+export type AnyUpdateablePart = AnyStatefulPart | AnyProxyPart | AnyUpdatePart;
 
 export type AnyGetValue<State> = (
   ...args: any[]
@@ -240,6 +250,66 @@ export interface PartActionConfig<
 > {
   getValue?: GetValue;
   type: string;
+}
+
+export interface BoundProxyPartConfig<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>,
+  Updater extends AnyUpdater
+> extends BasePartConfig {
+  get: Selector;
+  isEqual?: IsEqual<ReturnType<Selector>>;
+  parts: Parts;
+  set: Updater;
+}
+
+export interface UnboundProxyPartConfig<
+  Selector extends AnyGenericSelector,
+  Updater extends AnyUpdater
+> extends BasePartConfig {
+  get: Selector;
+  isEqual?: IsEqual<ReturnType<Selector>>;
+  part?: never;
+  set: Updater;
+}
+
+export interface BaseProxyPart extends BasePart {
+  f: typeof PROXY_PART;
+}
+
+export interface UnboundProxyPart<
+  Selector extends AnyGenericSelector,
+  Updater extends AnyUpdater
+> extends BaseProxyPart {
+  select(getState: GetState): ReturnType<Selector>;
+  update(
+    getState: GetState,
+    dispatch: Dispatch,
+    ...rest: UpdatePartArgs<Updater>
+  ): ReturnType<Updater>;
+
+  d: [];
+  e: IsEqual<ReturnType<Selector>>;
+  g: Get<ReturnType<Selector>>;
+  s: Updater;
+}
+
+export interface BoundProxyPart<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>,
+  Updater extends AnyUpdater
+> extends BaseProxyPart {
+  select(getState: GetState): ReturnType<Selector>;
+  update(
+    getState: GetState,
+    dispatch: Dispatch,
+    ...rest: UpdatePartArgs<Updater>
+  ): ReturnType<Updater>;
+
+  d: AnyStatefulPart[];
+  e: IsEqual<ReturnType<Selector>>;
+  g: Get<ReturnType<Selector>>;
+  s: Updater;
 }
 
 export type IsPartEqual<Part extends AnyPart> = Part extends AnySelectablePart

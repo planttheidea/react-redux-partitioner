@@ -1,6 +1,7 @@
 import {
   COMPOSED_PART,
   PRIMITIVE_PART,
+  PROXY_PART,
   SELECT_PART,
   UPDATE_PART,
 } from './flags';
@@ -21,6 +22,8 @@ import {
   isUnboundSelectConfig,
   isUpdateConfig,
   isUpdater,
+  isBoundProxyConfig,
+  isUnboundProxyConfig,
 } from './validate';
 
 import type { AnyAction, Dispatch, Reducer } from 'redux';
@@ -31,6 +34,8 @@ import type {
   AnySelector,
   AnyStatefulPart,
   AnyUpdater,
+  BoundProxyPart,
+  BoundProxyPartConfig,
   BoundSelectPart,
   BoundSelectPartConfig,
   ComposedPart,
@@ -44,6 +49,8 @@ import type {
   SelectPartArgs,
   StatefulPartUpdater,
   Tuple,
+  UnboundProxyPart,
+  UnboundProxyPartConfig,
   UnboundSelectPart,
   UnboundSelectPartConfig,
   UpdatePart,
@@ -51,6 +58,7 @@ import type {
   UpdatePartConfig,
 } from './types';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
+import { Selector } from 'react-redux';
 
 function createComposedReducer<State>(
   name: keyof State,
@@ -199,7 +207,7 @@ export function createBoundSelectPart<
 
   const part = select as BoundSelectPart<Parts, Selector>;
 
-  part.id = getId('SelectPart');
+  part.id = getId('BoundSelectPart');
 
   part.d = getDescendantParts(parts);
   part.e = isEqual;
@@ -221,13 +229,84 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
 
   const part = select as UnboundSelectPart<Selector>;
 
-  part.id = getId('SelectPart');
+  part.id = getId('UnboundSelectPart');
 
   part.d = ALL_DEPENDENCIES;
   part.e = isEqual;
   part.f = SELECT_PART as UnboundSelectPart<Selector>['f'];
   part.g = select;
   part.s = noop;
+
+  return part;
+}
+
+export function createBoundProxyPart<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>,
+  Updater extends AnyUpdater
+>(
+  config: BoundProxyPartConfig<Parts, Selector, Updater>
+): BoundProxyPart<Parts, Selector, Updater> {
+  const { get, isEqual = is, parts, set } = config;
+
+  const select = function select(getState: GetState): ReturnType<Selector> {
+    const values = parts.map(getState) as SelectPartArgs<Parts>;
+
+    return get(...values);
+  };
+  const update = function update(
+    getState: GetState,
+    dispatch: Dispatch,
+    ...rest: UpdatePartArgs<Updater>
+  ): ReturnType<Updater> {
+    return set(getState, dispatch, ...rest);
+  };
+
+  const part = {} as BoundProxyPart<Parts, Selector, Updater>;
+
+  part.id = getId('BoundProxyPart');
+  part.select = select;
+  part.update = update;
+
+  part.d = ALL_DEPENDENCIES;
+  part.e = isEqual;
+  part.f = PROXY_PART as BoundProxyPart<Parts, Selector, Updater>['f'];
+  part.g = select;
+  part.s = set;
+
+  return part;
+}
+
+export function createUnboundProxyPart<
+  Selector extends AnyGenericSelector,
+  Updater extends AnyUpdater
+>(
+  config: UnboundProxyPartConfig<Selector, Updater>
+): UnboundProxyPart<Selector, Updater> {
+  const { get, isEqual = is, set } = config;
+
+  const select = function select(getState: GetState): ReturnType<Selector> {
+    return get(getState);
+  };
+  const update = function update(
+    getState: GetState,
+    dispatch: Dispatch,
+    ...rest: UpdatePartArgs<Updater>
+  ): ReturnType<Updater> {
+    return set(getState, dispatch, ...rest);
+  };
+
+  const part = {} as UnboundProxyPart<Selector, Updater>;
+
+  part.id = getId('UnboundProxyPart');
+  part.select = select;
+  part.update = update;
+
+  part.d = ALL_DEPENDENCIES;
+  part.e = isEqual;
+  part.f = PROXY_PART as UnboundProxyPart<Selector, Updater>['f'];
+  part.g = get;
+  part.s = set;
 
   return part;
 }
@@ -305,6 +384,21 @@ export function part<Name extends string, State>(
   name: Name,
   initialState: State
 ): PrimitivePart<Name, State>;
+
+export function part<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends (...args: SelectPartArgs<Parts>) => any,
+  Updater extends AnyUpdater
+>(
+  parts: Parts,
+  selector: Selector,
+  updater: Updater
+): BoundProxyPart<Parts, Selector, Updater>;
+export function part<
+  Selector extends AnyGenericSelector,
+  Updater extends AnyUpdater
+>(selector: Selector, updater: Updater): UnboundProxyPart<Selector, Updater>;
+
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends (...args: SelectPartArgs<Parts>) => any
@@ -324,6 +418,21 @@ export function part<Name extends string, Parts extends Tuple<AnyStatefulPart>>(
 export function part<Name extends string, State>(
   config: PrimitivePartConfig<Name, State>
 ): PrimitivePart<Name, State>;
+
+export function part<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector,
+  Updater extends AnyUpdater
+>(
+  config: BoundProxyPartConfig<Parts, Selector, Updater>
+): BoundProxyPart<Parts, Selector, Updater>;
+export function part<
+  Selector extends AnyGenericSelector,
+  Updater extends AnyUpdater
+>(
+  config: UnboundProxyPartConfig<Selector, Updater>
+): UnboundProxyPart<Selector, Updater>;
+
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector
@@ -333,6 +442,7 @@ export function part<
 export function part<Selector extends AnyGenericSelector>(
   config: UnboundSelectPartConfig<Selector>
 ): UnboundSelectPart<Selector>;
+
 export function part<Updater extends AnyUpdater>(
   config: UpdatePartConfig<Updater>
 ): UpdatePart<Updater>;
@@ -350,12 +460,15 @@ export function part<
     | Parts
     | ComposedPartConfig<Name, Parts>
     | PrimitivePartConfig<Name, State>
+    | BoundProxyPartConfig<Parts, Selector, Updater>
+    | UnboundProxyPartConfig<GenericSelector, Updater>
     | BoundSelectPartConfig<Parts, Selector>
     | UnboundSelectPartConfig<GenericSelector>
     | UpdatePartConfig<Updater>
     | GenericSelector
     | null,
-  second?: State | Parts | Selector | Updater
+  second?: State | Parts | Selector | Updater,
+  third?: Updater
 ) {
   if (first === null) {
     if (isUpdater(second)) {
@@ -381,7 +494,9 @@ export function part<
 
   if (isStatefulPartsList(first)) {
     if (isSelector(second)) {
-      return createBoundSelectPart({ get: second, parts: first });
+      return isUpdater(third)
+        ? createBoundProxyPart({ get: second, parts: first, set: third })
+        : createBoundSelectPart({ get: second, parts: first });
     }
 
     throw new Error('Invalid select options provided');
@@ -395,8 +510,16 @@ export function part<
     return createUpdatePart(first);
   }
 
+  if (isBoundProxyConfig(first)) {
+    return createBoundProxyPart(first);
+  }
+
+  if (isUnboundProxyConfig(first)) {
+    return createUnboundProxyPart(first);
+  }
+
   if (isBoundSelectConfig(first)) {
-    return createBoundSelectPart(first as any);
+    return createBoundSelectPart(first);
   }
 
   if (isUnboundSelectConfig(first)) {
@@ -408,7 +531,9 @@ export function part<
   }
 
   if (isSelector(first)) {
-    return createUnboundSelectPart({ get: first });
+    return isUpdater(second)
+      ? createUnboundProxyPart({ get: first, set: second })
+      : createUnboundSelectPart({ get: first });
   }
 
   throw new Error('Invalid config provided');

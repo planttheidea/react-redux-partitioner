@@ -1,9 +1,7 @@
-import type { AnySelectPart, AnyStatefulPart, PartId } from './types';
+import type { AnySelectablePart, AnyStatefulPart, PartId } from './types';
 
 export function getDescendantParts(
-  parts:
-    | Array<AnySelectPart | AnyStatefulPart>
-    | ReadonlyArray<AnySelectPart | AnyStatefulPart>
+  parts: readonly AnySelectablePart[]
 ): AnyStatefulPart[] {
   const descendantParts: AnyStatefulPart[] = [];
 

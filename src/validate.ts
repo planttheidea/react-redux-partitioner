@@ -1,4 +1,5 @@
 import {
+  COMPOSED_PART,
   PART,
   SELECTABLE_PART,
   SELECT_PART,
@@ -7,6 +8,7 @@ import {
 } from './flags';
 
 import type {
+  AnyComposedPart,
   AnyPart,
   AnySelectablePart,
   AnySelector,
@@ -14,17 +16,51 @@ import type {
   AnyStatefulPart,
   AnyUpdatePart,
   AnyUpdater,
+  BoundProxyPartConfig,
   BoundSelectPartConfig,
   ComposedPartConfig,
   PartAction,
   PrimitivePartConfig,
+  UnboundProxyPartConfig,
   UpdatePartConfig,
 } from './types';
+
+export function isBoundProxyConfig(
+  value: any
+): value is BoundProxyPartConfig<
+  AnyStatefulPart[],
+  (...args: any[]) => any,
+  AnyUpdater
+> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'get' in value &&
+    'set' in value &&
+    'parts' in value
+  );
+}
+
+export function isBoundSelectConfig(
+  value: any
+): value is BoundSelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'get' in value &&
+    !('set' in value) &&
+    'parts' in value
+  );
+}
 
 export function isComposedConfig(
   value: any
 ): value is ComposedPartConfig<string, any> {
   return typeof value === 'object' && value !== null && 'parts' in value;
+}
+
+export function isComposedPart(value: any): value is AnyComposedPart {
+  return !!(value && value.f & COMPOSED_PART);
 }
 
 export function isPart(value: any): value is AnyPart {
@@ -45,20 +81,8 @@ export function isPrimitiveConfig(
   return typeof value === 'object' && value !== null && 'initialState' in value;
 }
 
-export function isBoundSelectConfig(
-  value: any
-): value is BoundSelectPartConfig<AnyStatefulPart[], (...args: any[]) => any> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'get' in value &&
-    !('set' in value) &&
-    'parts' in value
-  );
-}
-
 export function isSelectablePart(value: any): value is AnySelectablePart {
-  return typeof value === 'function' && !!(value.f & SELECTABLE_PART);
+  return !!(value && value.f & SELECTABLE_PART);
 }
 
 export function isSelectablePartsList(value: any): value is AnyStatefulPart[] {
@@ -66,7 +90,7 @@ export function isSelectablePartsList(value: any): value is AnyStatefulPart[] {
 }
 
 export function isSelectPart(value: any): value is AnySelectPart {
-  return typeof value === 'function' && !!(value.f & SELECT_PART);
+  return !!(value && value.f & SELECT_PART);
 }
 
 export function isSelector(value: any): value is AnySelector {
@@ -74,11 +98,23 @@ export function isSelector(value: any): value is AnySelector {
 }
 
 export function isStatefulPart(value: any): value is AnyStatefulPart {
-  return typeof value === 'function' && !!(value.f & STATEFUL_PART);
+  return !!(value && value.f & STATEFUL_PART);
 }
 
 export function isStatefulPartsList(value: any): value is AnyStatefulPart[] {
   return Array.isArray(value) && isStatefulPart(value[0]);
+}
+
+export function isUnboundProxyConfig(
+  value: any
+): value is UnboundProxyPartConfig<(...args: any[]) => any, AnyUpdater> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'get' in value &&
+    'set' in value &&
+    !('parts' in value)
+  );
 }
 
 export function isUnboundSelectConfig(
@@ -105,7 +141,7 @@ export function isUpdateConfig(
 }
 
 export function isUpdatePart(value: any): value is AnyUpdatePart {
-  return typeof value === 'function' && !!(value.f & UPDATE_PART);
+  return !!(value && value.f & UPDATE_PART);
 }
 
 export function isUpdater(value: any): value is AnyUpdater {
