@@ -22,9 +22,6 @@ export const resetTodosUpdate = part(null, (_getState, dispatch) =>
 );
 
 export const activeTogglePart = part('active', false);
-export const deactivateToggleAction = () => activeTogglePart(false);
-export const activateToggleAction = () => activeTogglePart(true);
-
 export const deactivateUpdate = activeTogglePart.update(
   'DEACTIVATE',
   () => false

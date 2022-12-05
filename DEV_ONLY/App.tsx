@@ -10,14 +10,22 @@ import {
   type ReduxState,
 } from './store';
 
-import { part, usePart, usePartUpdate, usePartValue } from '../src';
+import {
+  part,
+  usePart,
+  UsePartPair,
+  UsePartUpdate,
+  usePartUpdate,
+  usePartValue,
+  withParts,
+  withPartUpdates,
+  withPartValues,
+} from '../src';
 import {
   activateUpdate,
-  activateToggleAction,
   activeTogglePart,
   conditionalUpdate,
   deactivateUpdate,
-  deactivateToggleAction,
   descriptionPart,
   firstNamePart,
   fullNameSelect,
@@ -134,29 +142,20 @@ function Todos() {
 }
 
 function Toggle() {
-  const setActive = usePartUpdate(activeTogglePart);
-
+  // const setActive = usePartUpdate(activeTogglePart);
   // const toggleActive = useCallback(
   //   () => setActive((prevActive) => !prevActive),
   //   [setActive]
   // );
   // const activate = useCallback(
-  //   () => setActive(true, { context: 'Activating toggle' }),
+  //   () => setActive(true),
   //   [setActive]
   // );
   // const deactivate = useCallback(
-  //   () => setActive(false, { context: 'Deactivating toggle' }),
+  //   () => setActive(false),
   //   [setActive]
   // );
-  // const dispatch = useDispatch();
-  // const activate = useCallback(
-  //   () => dispatch(activateToggleAction()),
-  //   [dispatch]
-  // );
-  // const deactivate = useCallback(
-  //   () => dispatch(deactivateToggleAction()),
-  //   [dispatch]
-  // );
+
   const toggleActive = usePartUpdate(toggleUpdate);
   const activate = usePartUpdate(activateUpdate);
   const [, deactivate] = usePart(deactivateUpdate);
@@ -178,9 +177,28 @@ function Toggle() {
   );
 }
 
-function User() {
-  const [user] = usePart(userSelect);
+// function User() {
+//   const [user] = usePart(userSelect);
 
+//   console.count('user');
+
+//   return (
+//     <div>
+//       <h2>User: {user}</h2>
+
+//       <UserId />
+//       <UserName />
+//     </div>
+//   );
+// }
+
+interface UserProps {
+  user: string;
+}
+
+const User = withPartValues({ user: userSelect })(function User({
+  user,
+}: UserProps) {
   console.count('user');
 
   return (
@@ -191,12 +209,35 @@ function User() {
       <UserName />
     </div>
   );
+});
+
+// function UserId() {
+//   const id = usePartValue(idPart);
+//   const updateLastName = usePartUpdate(lastNamePart);
+//   const updateId = usePartUpdate(newUserUpdate);
+
+//   useAfterTimeout(() => updateId('lskdjgfslkjghslkfg'), 500);
+//   useAfterTimeout(() => updateLastName(`O'Testerson`), 1500);
+
+//   console.count('user id');
+
+//   return <div>Id: {id}</div>;
+// }
+
+interface UserIdProps {
+  testBadUpdate: UsePartUpdate<typeof fullNameSelect>;
+  updateLastName: UsePartUpdate<typeof lastNamePart>;
+  updateId: UsePartUpdate<typeof idPart>;
 }
 
-function UserId() {
+const UserId = withPartUpdates({
+  testBadUpdate: fullNameSelect,
+  updateLastName: lastNamePart,
+  updateId: newUserUpdate,
+})(function UserId({ testBadUpdate, updateLastName, updateId }: UserIdProps) {
+  console.log(testBadUpdate);
+
   const id = usePartValue(idPart);
-  const updateLastName = usePartUpdate(lastNamePart);
-  const updateId = usePartUpdate(newUserUpdate);
 
   useAfterTimeout(() => updateId('lskdjgfslkjghslkfg'), 500);
   useAfterTimeout(() => updateLastName(`O'Testerson`), 1500);
@@ -204,20 +245,38 @@ function UserId() {
   console.count('user id');
 
   return <div>Id: {id}</div>;
+});
+
+// function UserName() {
+//   const firstName = usePartValue(firstNamePart);
+//   const lastName = usePartValue(lastNamePart);
+
+//   console.count('user name');
+
+//   return (
+//     <div>
+//       Name: {firstName} {lastName}
+//     </div>
+//   );
+// }
+
+interface UserNameProps {
+  first: UsePartPair<typeof firstNamePart>;
+  last: UsePartPair<typeof lastNamePart>;
 }
 
-function UserName() {
-  const firstName = usePartValue(firstNamePart);
-  const lastName = usePartValue(lastNamePart);
-
+const UserName = withParts({
+  first: firstNamePart,
+  last: lastNamePart,
+})(function UserName({ first: [firstName], last: [lastName] }: UserNameProps) {
   console.count('user name');
 
   return (
     <div>
-      Name: {firstName} {lastName}
+      User name: {firstName} {lastName}
     </div>
   );
-}
+});
 
 function UserNameStoreSelector() {
   const [fullName] = usePart(fullNameSelect);

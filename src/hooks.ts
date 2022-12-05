@@ -6,77 +6,53 @@ import { isSelectPart } from './validate';
 import type {
   AnyPart,
   AnyPrimitivePart,
-  AnySelectPart,
-  AnyStatefulPart,
-  AnyUpdatePart,
-  IsEqual,
   Listener,
+  UsePartPair,
+  UsePartValue,
+  UsePartUpdate,
   Store,
   UpdatePartArgs,
   Unsubscribe,
-  UseUpdateUpdater,
+  IsPartEqual,
 } from './types';
-import { is } from './utils';
+import { is, noop } from './utils';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
 
-function noop(): undefined {
-  return;
-}
 function noopSubscribe() {
   return noop;
 }
 
-export function usePart<Part extends AnyStatefulPart>(
+export function usePart<Part extends AnyPart>(
   part: Part,
-  isEqual?: IsEqual<Part['g']>
-): [ReturnType<Part['g']>, UseUpdateUpdater<Part['s']>];
-export function usePart<Part extends AnySelectPart>(
-  part: Part,
-  isEqual?: IsEqual<Part['g']>
-): [ReturnType<Part['g']>, never];
-export function usePart<Part extends AnyUpdatePart>(
-  part: Part,
-  isEqual?: IsEqual<Part['g']>
-): [never, UseUpdateUpdater<Part['s']>];
-export function usePart<Part extends AnyStatefulPart | AnySelectPart>(
-  part: Part,
-  isEqual?: IsEqual<Part['g']>
-) {
+  isEqual?: IsPartEqual<Part>
+): UsePartPair<Part> {
   return [usePartValue(part, isEqual), usePartUpdate(part)];
 }
 
-export function usePartUpdate<Part extends AnyStatefulPart | AnyUpdatePart>(
+export function usePartUpdate<Part extends AnyPart>(
   part: Part
-): UseUpdateUpdater<Part['s']>;
-export function usePartUpdate<Part extends AnyPart>(part: Part): never;
-export function usePartUpdate<Part extends AnyPart>(part: Part) {
+): UsePartUpdate<Part> {
   const store = useStore();
 
   return useMemo(
     () =>
-      (...rest: UpdatePartArgs<Part['s']>) =>
-        part.s(
-          store.getState,
-          store.dispatch,
-          // @ts-expect-error - Spread is not liked here.
-          ...rest
-        ),
+      part.s === noop
+        ? noop
+        : (...rest: UpdatePartArgs<Part['s']>) =>
+            part.s(
+              store.getState,
+              store.dispatch,
+              // @ts-expect-error - Tuple is not able to be attained with `UpdatePartArgs`.
+              ...rest
+            ),
     [store, part]
-  );
+  ) as UsePartUpdate<Part>;
 }
 
-export function usePartValue<Part extends AnyStatefulPart | AnySelectPart>(
-  part: Part,
-  isEqual?: IsEqual<ReturnType<Part['g']>>
-): ReturnType<Part['g']>;
 export function usePartValue<Part extends AnyPart>(
   part: Part,
-  isEqual?: IsEqual<ReturnType<Part['g']>>
-): never;
-export function usePartValue<Part extends AnyPart>(
-  part: Part,
-  isEqual?: IsEqual<ReturnType<Part['g']>>
-) {
+  isEqual?: IsPartEqual<Part>
+): UsePartValue<Part> {
   const context = useContext(ReactReduxContext);
   const getServerState = context.getServerState;
   const store = context.store as Store;

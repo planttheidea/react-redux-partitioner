@@ -73,7 +73,7 @@ export type GetValueUpdater<State, GetValue extends AnyGetValue<State>> = (
 
 export interface StatefulPartUpdater<State> {
   <GetValue extends AnyGetValue<State>>(type: string): UpdatePart<
-    GetValueUpdater<State, (nextState: State) => State>
+    UpdatePart<GetValueUpdater<State, (nextState: State) => State>>
   >;
   <GetValue extends AnyGetValue<State>>(
     type: string,
@@ -212,6 +212,7 @@ export type AnySelectPart = SelectPart<
 >;
 export type AnySelectablePart = AnyStatefulPart | AnySelectPart;
 export type AnyUpdatePart = UpdatePart<AnyUpdater>;
+export type AnyUpdateablePart = AnyStatefulPart | AnyUpdatePart;
 
 export type AnyGetValue<State> = (
   ...args: any[]
@@ -224,3 +225,20 @@ export interface PartActionConfig<
   getValue?: GetValue;
   type: string;
 }
+
+export type IsPartEqual<Part extends AnyPart> = Part extends AnySelectablePart
+  ? IsEqual<Part['g']>
+  : IsEqual<undefined>;
+
+export type UsePartPair<Part extends AnyPart> = [
+  UsePartValue<Part>,
+  UsePartUpdate<Part>
+];
+
+export type UsePartValue<Part extends AnyPart> = Part extends AnySelectablePart
+  ? ReturnType<Part['g']>
+  : never;
+
+export type UsePartUpdate<Part extends AnyPart> = Part extends AnyUpdateablePart
+  ? (...rest: UpdatePartArgs<Part['s']>) => ReturnType<Part['s']>
+  : never;

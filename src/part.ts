@@ -34,14 +34,17 @@ import type {
   ComposedPartConfig,
   FunctionalUpdate,
   GetState,
+  GetValueUpdater,
   PartAction,
   PartActionConfig,
+  PartResult,
   PartsState,
   PrimitivePart,
   PrimitivePartConfig,
   SelectPart,
   SelectPartArgs,
   SelectPartConfig,
+  StatefulPartUpdater,
   Tuple,
   UpdatePart,
   UpdatePartArgs,
@@ -268,7 +271,7 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
     }
 
     return createUpdatePart<typeof set>({ set });
-  };
+  } as StatefulPartUpdater<Part['i']>;
 }
 
 export function part<Name extends string, State>(
