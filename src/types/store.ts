@@ -4,13 +4,13 @@ import type {
   AnyPartsState,
   AnyStatefulPart,
   PartId,
-  PartResult,
+  PartState,
 } from './part';
 import type { Listener, Unsubscribe } from './subscription';
 
 export interface GetState<State = any> {
   <CompleteState extends State>(): CompleteState;
-  <Part extends AnyPart>(part: Part): PartResult<Part>;
+  <Part extends AnyPart>(part: Part): PartState<Part>;
 }
 
 export interface PartAction<Value = any> extends Action {

@@ -12,7 +12,7 @@ import type { FunctionalUpdate, IsEqual, Tuple } from './utils';
 
 export type PartId = number;
 
-export type PartState<BaseStatefulPart extends AnyStatefulPart> = {
+export type PartialPartState<BaseStatefulPart extends AnyStatefulPart> = {
   [Name in BaseStatefulPart as BaseStatefulPart['n']]: BaseStatefulPart['i'];
 };
 
@@ -23,23 +23,21 @@ export type CombineState<
   infer Head extends AnyStatefulPart,
   ...infer Tail extends Tuple<AnyStatefulPart>
 ]
-  ? CombineState<PrevState & PartState<Head>, Tail>
+  ? CombineState<PrevState & PartialPartState<Head>, Tail>
   : {} extends PrevState
   ? Record<string, any>
   : PrevState;
 
-export type PartsState<Parts extends Tuple<AnyStatefulPart>> = CombineState<
-  {},
-  [...Parts]
->;
-export type AnyPartsState = PartsState<AnyStatefulPart[]>;
+export type CombinedPartsState<Parts extends Tuple<AnyStatefulPart>> =
+  CombineState<{}, [...Parts]>;
+export type AnyPartsState = CombinedPartsState<AnyStatefulPart[]>;
 
 export type Get<State> = (getState: GetState) => State;
 export type Set<State> = (
   getState: GetState,
   dispatch: Dispatch,
   nextState: State | FunctionalUpdate<State>
-) => any;
+) => ReturnType<Dispatch<PartAction<State>>>;
 
 export interface BasePartConfig {}
 
@@ -107,7 +105,7 @@ export interface PrimitivePart<Name extends string, State>
 export interface ComposedPart<
   Name extends string,
   Parts extends Tuple<AnyStatefulPart>
-> extends BaseStatefulPart<Name, PartsState<[...Parts]>> {
+> extends BaseStatefulPart<Name, CombinedPartsState<[...Parts]>> {
   f: typeof COMPOSED_PART;
 }
 
@@ -120,10 +118,10 @@ export type StatefulPart<
   ? ComposedPart<Name, Parts>
   : PrimitivePart<Name, State>;
 
-export type PartResult<Part> = Part extends AnyStatefulPart
+export type PartState<Part> = Part extends AnyStatefulPart
   ? Part['i']
-  : Part extends AnySelectPart
-  ? ReturnType<Part>
+  : Part extends AnySelectablePart
+  ? ReturnType<Part['g']>
   : undefined;
 
 type MergeSelectPartArgs<
@@ -133,7 +131,7 @@ type MergeSelectPartArgs<
   infer Head extends AnySelectablePart,
   ...infer Tail extends Tuple<AnySelectablePart>
 ]
-  ? MergeSelectPartArgs<[...Args, PartResult<Head>], Tail>
+  ? MergeSelectPartArgs<[...Args, PartState<Head>], Tail>
   : Args;
 
 export type SelectPartArgs<Parts extends Tuple<AnySelectablePart>> =

@@ -43,7 +43,7 @@ import type {
   FunctionalUpdate,
   GetState,
   PartAction,
-  PartsState,
+  CombinedPartsState,
   PrimitivePart,
   PrimitivePartConfig,
   SelectPartArgs,
@@ -58,7 +58,6 @@ import type {
   UpdatePartConfig,
 } from './types';
 import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
-import { Selector } from 'react-redux';
 
 function createComposedReducer<State>(
   name: keyof State,
@@ -68,6 +67,20 @@ function createComposedReducer<State>(
     const nextState = originalReducer(state[name], action);
 
     return is(state, nextState) ? state : { ...state, [name]: nextState };
+  };
+}
+
+function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
+  return function get(getState: GetState): Part['i'] {
+    const path = part.p;
+
+    let state: any = getState();
+
+    for (let index = 0, length = path.length; index < length; ++index) {
+      state = state[path[index]];
+    }
+
+    return state;
   };
 }
 
@@ -89,7 +102,7 @@ export function createComposedPart<
   Name extends string,
   Parts extends Tuple<AnyStatefulPart>
 >(config: ComposedPartConfig<Name, Parts>): ComposedPart<Name, Parts> {
-  type State = PartsState<[...Parts]>;
+  type State = CombinedPartsState<[...Parts]>;
 
   const { name, parts: baseParts } = config;
 
@@ -131,7 +144,7 @@ export function createComposedPart<
   part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   part.d = descendantParts;
   part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
-  part.g = (getState: any) => getState(part);
+  part.g = createStatefulGet(part);
   part.i = initialState;
   part.n = name;
   part.o = name;
@@ -173,7 +186,7 @@ export function createPrimitivePart<Name extends string, State>(
   part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   part.d = [part];
   part.f = PRIMITIVE_PART as PrimitivePart<Name, State>['f'];
-  part.g = (getState: any) => getState(part);
+  part.g = createStatefulGet(part);
   part.i = initialState;
   part.n = name;
   part.o = name;

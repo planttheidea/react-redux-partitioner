@@ -18,8 +18,8 @@ import type {
   Notifier,
   Notify,
   PartId,
-  PartResult,
-  PartsState,
+  PartState,
+  CombinedPartsState,
   PartsStoreExtensions,
   Unsubscribe,
 } from './types';
@@ -27,8 +27,8 @@ import type {
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
   notifier: Notifier
-): StoreEnhancer<PartsStoreExtensions<PartsState<Parts>>> {
-  type PartedState = PartsState<Parts>;
+): StoreEnhancer<PartsStoreExtensions<CombinedPartsState<Parts>>> {
+  type PartedState = CombinedPartsState<Parts>;
   type PartedExtensions = PartsStoreExtensions<PartedState>;
 
   return function enhancer(
@@ -94,35 +94,13 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       function getState(): PartedState;
       function getState<
         Part extends AnySelectPart | AnyStatefulPart | undefined
-      >(part: Part): PartResult<Part>;
+      >(part: Part): PartState<Part>;
       function getState<
         Part extends AnySelectPart | AnyStatefulPart | undefined
-      >(part?: Part): Part extends any ? PartResult<Part> : PartedState {
-        if (!part) {
-          return originalGetState();
-        }
-
-        if (isStatefulPart(part)) {
-          const path = part.p;
-
-          let state: any = originalGetState();
-
-          for (let index = 0, length = path.length; index < length; ++index) {
-            state = state[path[index]];
-
-            if (!state) {
-              return state;
-            }
-          }
-
-          return state;
-        }
-
-        if (isSelectablePart(part)) {
-          return part.g(getState);
-        }
-
-        return originalGetState();
+      >(part?: Part): Part extends any ? PartState<Part> : PartedState {
+        return part && isSelectablePart(part)
+          ? part.g(getState)
+          : originalGetState();
       }
 
       function notify() {

@@ -10,7 +10,7 @@ import type {
   ReducersMapObject,
   StateFromReducersMapObject,
 } from 'redux';
-import type { AnyStatefulPart, PartsState } from './types';
+import type { AnyStatefulPart, CombinedPartsState } from './types';
 
 export function isReducersMap(
   value: any
@@ -19,10 +19,10 @@ export function isReducersMap(
 }
 
 export function combineReduxReducers<
-  PartsState,
+  CombinedPartsState,
   DispatchedAction extends Action = AnyAction
 >(
-  reducers: ReducersMapObject<PartsState, DispatchedAction>
+  reducers: ReducersMapObject<CombinedPartsState, DispatchedAction>
 ): Reducer<StateFromReducersMapObject<typeof reducers>, DispatchedAction> {
   type ReducerState = StateFromReducersMapObject<typeof reducers>;
 
@@ -83,7 +83,7 @@ export function createPartsReducer<
   Parts extends readonly AnyStatefulPart[],
   DispatchedAction extends AnyAction
 >(parts: Parts) {
-  type State = PartsState<Parts>;
+  type State = CombinedPartsState<Parts>;
 
   const partMap: Record<string, AnyStatefulPart> = {};
   const initialState = parts.reduce<State>((initialState, part) => {
@@ -131,7 +131,7 @@ export function createReducer<
 ) {
   const partsReducer = createPartsReducer(parts);
 
-  type PartReducerState = PartsState<Parts>;
+  type PartReducerState = CombinedPartsState<Parts>;
   type CombinedState = Omit<OtherReducerState, keyof PartReducerState> &
     PartReducerState;
 
@@ -140,7 +140,7 @@ export function createReducer<
   }
 
   if (isReducersMap(otherReducer)) {
-    // @ts-expect-error - PartsState typing is a bit wonky
+    // @ts-expect-error - CombinedPartsState typing is a bit wonky
     otherReducer = combineReduxReducers<OtherState, DispatchedAction>(
       otherReducer
     );

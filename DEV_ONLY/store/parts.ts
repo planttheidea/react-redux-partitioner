@@ -71,10 +71,13 @@ export const userPart = part({
 console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
 
 export const userProxy = part(
-  (getState) =>
-    `${getState(fullNameProxy)} (${getState(idPart)}) - ${
-      getState<ReduxState>().legacy
-    }`,
+  (getState) => {
+    const name = getState(fullNameProxy);
+    const id = getState(idPart);
+    const legacy = getState<ReduxState>().legacy;
+
+    return `${name} (${id}) - ${legacy}`;
+  },
   (_, dispatch, { id, name }: { id?: string; name?: string }) => {
     if (id && name) {
       const [first, last] = name.split(' ');
