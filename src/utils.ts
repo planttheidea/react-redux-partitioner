@@ -1,29 +1,33 @@
 import { FULL_STATE_DEPENDENCY } from './constants';
 import type { AnySelectablePart, AnyStatefulPart, PartId } from './types';
 
-export function getDescendantParts(
+export function getDependencies(
   parts: readonly AnySelectablePart[]
 ): AnyStatefulPart[] {
-  const descendantParts: AnyStatefulPart[] = [];
+  const dependencies: AnyStatefulPart[] = [];
 
   for (let index = 0; index < parts.length; ++index) {
     const part = parts[index];
-    const dependencies = part.d;
+    const partDependencies = part.d;
 
-    if (dependencies === FULL_STATE_DEPENDENCY) {
+    if (partDependencies === FULL_STATE_DEPENDENCY) {
       return FULL_STATE_DEPENDENCY;
     }
 
-    for (let innerIndex = 0; innerIndex < dependencies.length; ++innerIndex) {
-      const dependency = dependencies[innerIndex];
+    for (
+      let innerIndex = 0;
+      innerIndex < partDependencies.length;
+      ++innerIndex
+    ) {
+      const dependency = partDependencies[innerIndex];
 
-      if (!~descendantParts.indexOf(dependency)) {
-        descendantParts.push(dependency);
+      if (!~dependencies.indexOf(dependency)) {
+        dependencies.push(dependency);
       }
     }
   }
 
-  return descendantParts;
+  return dependencies;
 }
 
 let hashId = 0;

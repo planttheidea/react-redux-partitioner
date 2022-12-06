@@ -7,7 +7,7 @@ import {
   UPDATE_PART,
 } from './flags';
 import {
-  getDescendantParts,
+  getDependencies,
   getId,
   identity,
   is,
@@ -164,25 +164,25 @@ export function createComposedPart<
 
   const { name, parts: baseParts } = config;
 
-  const descendantParts = getDescendantParts(baseParts);
+  const dependencies = getDependencies(baseParts);
   const initialState = baseParts.reduce((state, childPart) => {
     state[childPart.n as keyof State] = childPart.i;
 
     return state;
   }, {} as State);
 
-  descendantParts.forEach((descendantPart) => {
-    const path = [name, ...descendantPart.p];
-    const type = getPrefixedType(path, descendantPart.t);
+  dependencies.forEach((dependency) => {
+    const path = [name, ...dependency.p];
+    const type = getPrefixedType(path, dependency.t);
     const nextReducer = createComposedReducer<State>(
-      descendantPart.o,
-      descendantPart.r
+      dependency.o,
+      dependency.r
     );
 
-    descendantPart.o = name;
-    descendantPart.p = path;
-    descendantPart.r = nextReducer;
-    descendantPart.t = type;
+    dependency.o = name;
+    dependency.p = path;
+    dependency.r = nextReducer;
+    dependency.t = type;
   });
 
   const part: ComposedPart<Name, Parts> = function actionCreator(
@@ -199,7 +199,7 @@ export function createComposedPart<
   part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
-  part.d = descendantParts;
+  part.d = dependencies;
   part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
   part.g = createStatefulGet(part);
   part.i = initialState;
@@ -275,7 +275,7 @@ export function createBoundSelectPart<
 
   part.id = getId('BoundSelectPart');
 
-  part.d = getDescendantParts(parts);
+  part.d = getDependencies(parts);
   part.f = SELECT_PART as BoundSelectPart<Parts, Selector>['f'];
   part.g = select;
   part.s = noop;

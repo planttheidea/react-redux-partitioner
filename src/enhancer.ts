@@ -39,8 +39,8 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       const partMap: Record<string, AnyStatefulPart> = {};
 
       parts.forEach((part) => {
-        part.d.forEach((descendantPart) => {
-          partMap[descendantPart.id] = descendantPart;
+        part.d.forEach((dependency) => {
+          partMap[dependency.id] = dependency;
         });
 
         partMap[part.id] = part;
