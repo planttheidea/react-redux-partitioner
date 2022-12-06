@@ -87,7 +87,6 @@ export interface BaseStatefulPart<Name extends string, State> extends BasePart {
   toString(): string;
   update: StatefulPartUpdater<State>;
 
-  a: string;
   f: typeof STATEFUL_PART;
   g: Get<State>;
   i: State;
@@ -96,6 +95,7 @@ export interface BaseStatefulPart<Name extends string, State> extends BasePart {
   p: string[];
   r(state: State, action: any): State;
   s: Set<State>;
+  t: string;
 }
 
 export interface PrimitivePart<Name extends string, State>

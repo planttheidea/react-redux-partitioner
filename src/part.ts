@@ -173,16 +173,16 @@ export function createComposedPart<
 
   descendantParts.forEach((descendantPart) => {
     const path = [name, ...descendantPart.p];
-    const type = getPrefixedType(path, descendantPart.a);
+    const type = getPrefixedType(path, descendantPart.t);
     const nextReducer = createComposedReducer<State>(
       descendantPart.o,
       descendantPart.r
     );
 
-    descendantPart.a = type;
     descendantPart.o = name;
     descendantPart.p = path;
     descendantPart.r = nextReducer;
+    descendantPart.t = type;
   });
 
   const part: ComposedPart<Name, Parts> = function actionCreator(
@@ -190,16 +190,15 @@ export function createComposedPart<
   ): PartAction<State> {
     return {
       $$part: part.id,
-      type: part.a,
+      type: part.t,
       value: nextValue,
     };
   };
 
   part.id = getId(name);
-  part.toString = () => part.a;
+  part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
-  part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   part.d = descendantParts;
   part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
   part.g = createStatefulGet(part);
@@ -218,6 +217,7 @@ export function createComposedPart<
 
     return dispatch(part(nextValue));
   };
+  part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
 
   return part;
 }
@@ -232,16 +232,15 @@ export function createPrimitivePart<Name extends string, State>(
   ): PartAction<State> {
     return {
       $$part: part.id,
-      type: part.a,
+      type: part.t,
       value: nextValue,
     };
   };
 
   part.id = getId(name);
-  part.toString = () => part.a;
+  part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
-  part.a = `UPDATE_${toScreamingSnakeCase(name)}`;
   part.d = [part];
   part.f = PRIMITIVE_PART as PrimitivePart<Name, State>['f'];
   part.g = createStatefulGet(part);
@@ -260,6 +259,7 @@ export function createPrimitivePart<Name extends string, State>(
 
     return dispatch(part(nextValue));
   };
+  part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
 
   return part;
 }
