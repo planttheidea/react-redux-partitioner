@@ -24,7 +24,7 @@ import { noop } from './utils';
 
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
-  notifier: Notifier
+  notifier: Notifier = (notify) => notify()
 ): StoreEnhancer<PartsStoreExtensions<CombinedPartsState<Parts>>> {
   type PartedState = CombinedPartsState<Parts>;
   type PartedExtensions = PartsStoreExtensions<PartedState>;
