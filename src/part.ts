@@ -153,7 +153,7 @@ export function createComposedPart<
     action.$$part === part.id && !is(state, action.value)
       ? { ...state, ...action.value }
       : state;
-  part.s = (getState, dispatch, update) => {
+  part.s = (dispatch, getState, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
       ? update(part.g(getState))
       : update;
@@ -195,7 +195,7 @@ export function createPrimitivePart<Name extends string, State>(
     action.$$part === part.id && !is(state, action.value)
       ? action.value
       : state;
-  part.s = (getState, dispatch, update) => {
+  part.s = (dispatch, getState, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
       ? update(part.g(getState))
       : update;
@@ -269,12 +269,9 @@ export function createBoundProxyPart<
 
     return get(...values);
   };
-  const update = function update(
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater> {
-    return set(getState, dispatch, ...rest);
+  const update = function update(...rest: UpdatePartArgs<Updater>) {
+    return (dispatch: Dispatch, getState: GetState) =>
+      set(dispatch, getState, ...rest);
   };
 
   const part = {} as BoundProxyPart<Parts, Selector, Updater>;
@@ -303,12 +300,9 @@ export function createUnboundProxyPart<
   const select = function select(getState: GetState): ReturnType<Selector> {
     return get(getState);
   };
-  const update = function update(
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater> {
-    return set(getState, dispatch, ...rest);
+  const update = function update(...rest: UpdatePartArgs<Updater>) {
+    return (dispatch: Dispatch, getState: GetState) =>
+      set(dispatch, getState, ...rest);
   };
 
   const part = {} as UnboundProxyPart<Selector, Updater>;
@@ -328,25 +322,22 @@ export function createUnboundProxyPart<
 
 export function createUpdatePart<Updater extends AnyUpdater>(
   config: UpdatePartConfig<Updater>
-) {
+): UpdatePart<Updater> {
   const { set } = config;
 
-  const update = function update(
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater> {
-    return set(getState, dispatch, ...rest);
+  const part = function update(...args: Parameters<Updater>) {
+    return (dispatch: Dispatch, getState: GetState) =>
+      set(dispatch, getState, ...args);
   };
 
-  const part = update as UpdatePart<Updater>;
+  part.id = getId('UpdatePart');
 
   part.d = NO_DEPENDENCIES;
   part.f = UPDATE_PART as UpdatePart<Updater>['f'];
   part.g = noop;
   part.s = set;
 
-  return part;
+  return part as unknown as UpdatePart<Updater>;
 }
 
 export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
@@ -367,8 +358,8 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
     }
 
     function set(
-      getState: GetState,
       dispatch: Dispatch,
+      getState: GetState,
       ...rest: Parameters<GetValue>
     ) {
       const update = getValue(...rest);

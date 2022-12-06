@@ -8,7 +8,7 @@ import type {
   UPDATE_PART,
 } from '../flags';
 import type { GetState, PartAction } from './store';
-import type { FunctionalUpdate, IsEqual, Tuple } from './utils';
+import type { FunctionalUpdate, IsEqual, Thunk, Tuple } from './utils';
 
 export type PartId = number;
 
@@ -34,8 +34,8 @@ export type AnyPartsState = CombinedPartsState<AnyStatefulPart[]>;
 
 export type Get<State> = (getState: GetState) => State;
 export type Set<State> = (
-  getState: GetState,
   dispatch: Dispatch,
+  getState: GetState<State>,
   nextState: State | FunctionalUpdate<State>
 ) => ReturnType<Dispatch<PartAction<State>>>;
 
@@ -65,14 +65,14 @@ export interface BasePart {
 }
 
 export type GetValueUpdater<State, GetValue extends AnyGetValue<State>> = (
-  getState: GetState<State>,
   dispatch: Dispatch,
+  getState: GetState<State>,
   ...args: Parameters<GetValue>
 ) => PartAction<State>;
 
 export interface StatefulPartUpdater<State> {
-  <GetValue extends AnyGetValue<State>>(type: string): UpdatePart<
-    UpdatePart<GetValueUpdater<State, (nextState: State) => State>>
+  (type: string): UpdatePart<
+    GetValueUpdater<State, (nextState: State) => State>
   >;
   <GetValue extends AnyGetValue<State>>(
     type: string,
@@ -184,14 +184,14 @@ export interface BoundSelectPart<
 }
 
 export type AnyUpdater = (
-  getState: GetState,
   dispatch: Dispatch,
+  getState: GetState,
   ...rest: any[]
 ) => any;
 
 export type UpdatePartArgs<Updater extends AnyUpdater> = Updater extends (
-  getState: GetState,
   dispatch: Dispatch,
+  getState: GetState,
   ...rest: infer Rest
 ) => any
   ? Rest
@@ -203,11 +203,7 @@ export interface UpdatePartConfig<Updater extends AnyUpdater>
 }
 
 export interface UpdatePart<Updater extends AnyUpdater> extends BasePart {
-  (
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater>;
+  (...rest: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
   d: [];
   f: typeof UPDATE_PART;
@@ -280,11 +276,7 @@ export interface UnboundProxyPart<
   Updater extends AnyUpdater
 > extends BaseProxyPart {
   select(getState: GetState): ReturnType<Selector>;
-  update(
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater>;
+  update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
   d: [];
   e: IsEqual<ReturnType<Selector>>;
@@ -298,31 +290,10 @@ export interface BoundProxyPart<
   Updater extends AnyUpdater
 > extends BaseProxyPart {
   select(getState: GetState): ReturnType<Selector>;
-  update(
-    getState: GetState,
-    dispatch: Dispatch,
-    ...rest: UpdatePartArgs<Updater>
-  ): ReturnType<Updater>;
+  update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
   d: AnyStatefulPart[];
   e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
   s: Updater;
 }
-
-export type IsPartEqual<Part extends AnyPart> = Part extends AnySelectablePart
-  ? IsEqual<Part['g']>
-  : IsEqual<undefined>;
-
-export type UsePartPair<Part extends AnyPart> = [
-  UsePartValue<Part>,
-  UsePartUpdate<Part>
-];
-
-export type UsePartValue<Part extends AnyPart> = Part extends AnySelectablePart
-  ? ReturnType<Part['g']>
-  : never;
-
-export type UsePartUpdate<Part extends AnyPart> = Part extends AnyUpdateablePart
-  ? (...rest: UpdatePartArgs<Part['s']>) => ReturnType<Part['s']>
-  : never;

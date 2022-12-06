@@ -40,8 +40,8 @@ export function usePartUpdate<Part extends AnyPart>(
         ? noop
         : (...rest: UpdatePartArgs<Part['s']>) =>
             part.s(
-              store.getState,
               store.dispatch,
+              store.getState,
               // @ts-expect-error - Tuple is not able to be attained with `UpdatePartArgs`.
               ...rest
             ),

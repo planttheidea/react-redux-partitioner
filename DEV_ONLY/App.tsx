@@ -34,6 +34,7 @@ import {
   lastNamePart,
   newUserUpdate,
   parentPart,
+  resetTodosUpdate,
   titlePart,
   todosPart,
   toggleUpdate,
@@ -122,13 +123,8 @@ function Title() {
   return <div>Title: {title}</div>;
 }
 
-const resetUpdate = part(null, (_getState, dispatch) =>
-  dispatch(todosPart([]))
-);
-
 function Todos() {
   const [todos, updateTodos] = usePart(todosPart);
-  const [, resetTodos] = usePart(resetUpdate);
 
   console.count('todos');
 
@@ -137,7 +133,11 @@ function Todos() {
     () => updateTodos((exitingTodos) => [...exitingTodos, 'bar']),
     2000
   );
-  useAfterTimeout(resetTodos, 3000);
+
+  // const [, resetTodos] = usePart(resetTodosUpdate);
+  // useAfterTimeout(resetTodos, 3000);
+  const dispatch = useDispatch();
+  useAfterTimeout(() => dispatch(resetTodosUpdate()), 3000);
 
   return <div>Todos: {JSON.stringify(todos)}</div>;
 }

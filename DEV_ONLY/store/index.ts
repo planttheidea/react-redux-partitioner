@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit';
 import {
   applyMiddleware,
   compose,
@@ -76,6 +76,6 @@ export const store = createStore<
 
 export const storeConfigured = configureStore({
   reducer,
-  middleware: [logger],
+  middleware: (getDefaultMiddleware) => [logger, ...getDefaultMiddleware()],
   enhancers: [createPartitioner(storeParts, debouncedNotify)],
 });

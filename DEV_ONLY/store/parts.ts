@@ -10,7 +10,7 @@ export const titlePart = part({
 
 export const conditionalUpdate = part(
   null,
-  (_getState, dispatch, nextTitle) => {
+  (dispatch, _getState, nextTitle) => {
     if (typeof nextTitle !== 'string') {
       return console.error('Invalid title');
     }
@@ -18,7 +18,7 @@ export const conditionalUpdate = part(
     return dispatch(titlePart(nextTitle));
   }
 );
-export const resetTodosUpdate = part(null, (_getState, dispatch) =>
+export const resetTodosUpdate = part(null, (dispatch) =>
   dispatch(todosPart([]))
 );
 
@@ -48,7 +48,7 @@ export const fullNameSelect = part(
 export const fullNameProxy = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`,
-  (_, dispatch, { first, last }: { first?: string; last?: string }) => {
+  (dispatch, _, { first, last }: { first?: string; last?: string }) => {
     if (first) {
       dispatch(firstNamePart(first));
     }
@@ -78,7 +78,7 @@ export const userProxy = part(
 
     return `${name} (${id}) - ${legacy}`;
   },
-  (_, dispatch, { id, name }: { id?: string; name?: string }) => {
+  (dispatch, _, { id, name }: { id?: string; name?: string }) => {
     if (id && name) {
       const [first, last] = name.split(' ');
 
