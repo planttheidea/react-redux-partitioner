@@ -4,6 +4,7 @@ import {
   SELECTABLE_PART,
   SELECT_PART,
   STATEFUL_PART,
+  UPDATEABLE_PART,
   UPDATE_PART,
 } from './flags';
 
@@ -14,6 +15,7 @@ import type {
   AnySelector,
   AnySelectPart,
   AnyStatefulPart,
+  AnyUpdateablePart,
   AnyUpdatePart,
   AnyUpdater,
   BoundProxyPartConfig,
@@ -142,6 +144,10 @@ export function isUpdateConfig(
 
 export function isUpdatePart(value: any): value is AnyUpdatePart {
   return !!(value && value.f & UPDATE_PART);
+}
+
+export function isUpdateablePart(value: any): value is AnyUpdateablePart {
+  return !!(value && value.f & UPDATEABLE_PART);
 }
 
 export function isUpdater(value: any): value is AnyUpdater {

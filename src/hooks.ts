@@ -2,6 +2,7 @@ import { useCallback, useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { is, noop } from './utils';
+import { isSelectablePart, isUpdateablePart } from './validate';
 
 import type {
   AnyPart,
@@ -25,15 +26,15 @@ export function usePartUpdate<Part extends AnyPart>(
 
   return useMemo(
     () =>
-      part.s === noop
-        ? noop
-        : (...rest: UpdatePartArgs<Part['s']>) =>
+      isUpdateablePart(part)
+        ? (...rest: UpdatePartArgs<Part['s']>) =>
             part.s(
               store.dispatch,
               store.getState,
               // @ts-expect-error - Tuple is not able to be attained with `UpdatePartArgs`.
               ...rest
-            ),
+            )
+        : noop,
     [store, part]
   ) as UsePartUpdate<Part>;
 }
@@ -52,7 +53,7 @@ export function usePartValue<Part extends AnyPart>(
   );
 
   const getSnapshot = useMemo(
-    () => (part && part.g ? () => part.g(store.getState) : noop),
+    () => (isSelectablePart(part) ? () => part.g(store.getState) : noop),
     [store, part]
   );
 
