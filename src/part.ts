@@ -1,3 +1,4 @@
+import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
 import {
   COMPOSED_PART,
   PRIMITIVE_PART,
@@ -58,7 +59,34 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
-import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
+
+function createBoundSelector<
+  Parts extends Tuple<AnySelectablePart>,
+  Selector extends AnySelector<Parts>
+>(parts: Parts, get: Selector) {
+  let values: SelectPartArgs<Parts>;
+  let result: ReturnType<Selector>;
+
+  return function select(getState: GetState): ReturnType<Selector> {
+    const nextValues = [] as SelectPartArgs<Parts>;
+
+    let hasChanged = !values;
+
+    for (let index = 0; index < parts.length; ++index) {
+      nextValues[index] = parts[index].g(getState);
+
+      hasChanged = hasChanged || !is(values[index], nextValues[index]);
+    }
+
+    values = nextValues;
+
+    if (hasChanged) {
+      result = get(...nextValues);
+    }
+
+    return result;
+  };
+}
 
 function createComposedReducer<State>(
   name: keyof State,
@@ -82,6 +110,21 @@ function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
     }
 
     return state;
+  };
+}
+
+function createUnboundSelector<Selector extends AnyGenericSelector>(
+  get: Selector
+) {
+  return function select(getState: GetState): ReturnType<Selector> {
+    return get(getState);
+  };
+}
+
+function createUpdate<Updater extends AnyUpdater>(set: Updater) {
+  return function update(...rest: UpdatePartArgs<Updater>) {
+    return (dispatch: Dispatch, getState: GetState) =>
+      set(dispatch, getState, ...rest);
   };
 }
 
@@ -213,14 +256,7 @@ export function createBoundSelectPart<
 >(config: BoundSelectPartConfig<Parts, Selector>) {
   const { get, isEqual = is, parts } = config;
 
-  const select = function select(getState: GetState): ReturnType<Selector> {
-    const values = parts.map((part) =>
-      part.g(getState)
-    ) as SelectPartArgs<Parts>;
-
-    return get(...values);
-  };
-
+  const select = createBoundSelector(parts, get);
   const part = select as BoundSelectPart<Parts, Selector>;
 
   part.id = getId('BoundSelectPart');
@@ -239,10 +275,7 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
 ): UnboundSelectPart<Selector> {
   const { get, isEqual = is } = config;
 
-  const select = function select(getState: GetState): ReturnType<Selector> {
-    return get(getState);
-  };
-
+  const select = createUnboundSelector(get);
   const part = select as UnboundSelectPart<Selector>;
 
   part.id = getId('UnboundSelectPart');
@@ -265,15 +298,8 @@ export function createBoundProxyPart<
 ): BoundProxyPart<Parts, Selector, Updater> {
   const { get, isEqual = is, parts, set } = config;
 
-  const select = function select(getState: GetState): ReturnType<Selector> {
-    const values = parts.map(getState) as SelectPartArgs<Parts>;
-
-    return get(...values);
-  };
-  const update = function update(...rest: UpdatePartArgs<Updater>) {
-    return (dispatch: Dispatch, getState: GetState) =>
-      set(dispatch, getState, ...rest);
-  };
+  const select = createBoundSelector(parts, get);
+  const update = createUpdate(set);
 
   const part = {} as BoundProxyPart<Parts, Selector, Updater>;
 
@@ -298,13 +324,8 @@ export function createUnboundProxyPart<
 ): UnboundProxyPart<Selector, Updater> {
   const { get, isEqual = is, set } = config;
 
-  const select = function select(getState: GetState): ReturnType<Selector> {
-    return get(getState);
-  };
-  const update = function update(...rest: UpdatePartArgs<Updater>) {
-    return (dispatch: Dispatch, getState: GetState) =>
-      set(dispatch, getState, ...rest);
-  };
+  const select = createUnboundSelector(get);
+  const update = createUpdate(set);
 
   const part = {} as UnboundProxyPart<Selector, Updater>;
 
@@ -326,10 +347,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 ): UpdatePart<Updater> {
   const { set } = config;
 
-  const part = function update(...args: Parameters<Updater>) {
-    return (dispatch: Dispatch, getState: GetState) =>
-      set(dispatch, getState, ...args);
-  };
+  const part = createUpdate(set) as UpdatePart<Updater>;
 
   part.id = getId('UpdatePart');
 
@@ -338,7 +356,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
   part.g = noop;
   part.s = set;
 
-  return part as unknown as UpdatePart<Updater>;
+  return part;
 }
 
 export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
