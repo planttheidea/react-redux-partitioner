@@ -1,9 +1,4 @@
-import {
-  isComposedPart,
-  isPartAction,
-  isSelectablePart,
-  isStatefulPart,
-} from './validate';
+import { isComposedPart, isPartAction, isSelectablePart } from './validate';
 
 import type {
   PreloadedState,
@@ -22,7 +17,10 @@ import type {
   CombinedPartsState,
   PartsStoreExtensions,
   Unsubscribe,
+  AnySelectablePart,
 } from './types';
+import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
+import { noop } from './utils';
 
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
@@ -156,15 +154,28 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         };
       }
 
-      function subscribeToPart(part: AnyStatefulPart, listener: Listener) {
+      function subscribeToPart(part: AnySelectablePart, listener: Listener) {
         if (typeof listener !== 'function') {
           throw new Error(
             `Expected the listener to be a function. Instead, received: '${typeof listener}'`
           );
         }
 
+        const dependencies = part.d;
+
+        if (dependencies === FULL_STATE_DEPENDENCY) {
+          return subscribe(listener);
+        }
+
+        if (dependencies === IGNORE_ALL_DEPENDENCIES || !dependencies.length) {
+          return noop;
+        }
+
         let subscribed = true;
-        updatePartListeners(part.id, listener, true);
+
+        for (let index = 0; index < dependencies.length; ++index) {
+          updatePartListeners(dependencies[index].id, listener, true);
+        }
 
         return () => {
           if (!subscribed) {
@@ -172,7 +183,10 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           }
 
           subscribed = false;
-          updatePartListeners(part.id, listener, false);
+
+          for (let index = 0; index < dependencies.length; ++index) {
+            updatePartListeners(dependencies[index].id, listener, false);
+          }
         };
       }
 

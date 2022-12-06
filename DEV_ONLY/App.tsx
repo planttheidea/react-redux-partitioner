@@ -50,6 +50,10 @@ store.subscribeToPart(descriptionPart, () => {
   console.log('description changed', store.getState(descriptionPart));
 });
 
+store.subscribeToPart(userProxy, () => {
+  console.log('user changed', store.getState(userProxy));
+});
+
 console.log('initial state', store.getState());
 
 store.dispatch(descriptionPart('next description'));

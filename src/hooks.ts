@@ -1,6 +1,7 @@
-import { useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { is, noop } from './utils';
 import { isSelectPart } from './validate';
 
 import type {
@@ -12,15 +13,8 @@ import type {
   UsePartUpdate,
   Store,
   UpdatePartArgs,
-  Unsubscribe,
   IsPartEqual,
 } from './types';
-import { is, noop } from './utils';
-import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
-
-function noopSubscribe() {
-  return noop;
-}
 
 export function usePart<Part extends AnyPart>(
   part: Part,
@@ -57,42 +51,11 @@ export function usePartValue<Part extends AnyPart>(
   const getServerState = context.getServerState;
   const store = context.store as Store;
 
-  const subscribe = useMemo(() => {
-    const dependencies = part.d;
-
-    if (dependencies === FULL_STATE_DEPENDENCY) {
-      return store.subscribe;
-    }
-
-    if (dependencies === IGNORE_ALL_DEPENDENCIES || !dependencies.length) {
-      return noopSubscribe;
-    }
-
-    if (dependencies.length === 1) {
-      return (listener: Listener) =>
-        store.subscribeToPart(part as AnyPrimitivePart, listener);
-    }
-
-    return (listener: Listener): Unsubscribe => {
-      let subscribed = true;
-
-      const unsubscribes = dependencies.map((dependency) =>
-        store.subscribeToPart(dependency, listener)
-      );
-
-      return () => {
-        if (!subscribed) {
-          return;
-        }
-
-        subscribed = false;
-
-        for (let index = 0; index < unsubscribes.length; ++index) {
-          unsubscribes[index]();
-        }
-      };
-    };
-  }, [store, part]);
+  const subscribe = useCallback(
+    (listener: Listener) =>
+      store.subscribeToPart(part as AnyPrimitivePart, listener),
+    [store, part]
+  );
 
   const getSnapshot = useMemo(
     () => (part && part.g ? () => part.g(store.getState) : noop),

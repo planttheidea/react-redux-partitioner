@@ -2,7 +2,7 @@ import type { Action, AnyAction, Store as ReduxStore } from 'redux';
 import type {
   AnyPart,
   AnyPartsState,
-  AnyStatefulPart,
+  AnySelectablePart,
   PartId,
   PartState,
 } from './part';
@@ -19,7 +19,7 @@ export interface PartAction<Value = any> extends Action {
 }
 
 export type SubscribeToPart = (
-  part: AnyStatefulPart,
+  part: AnySelectablePart,
   listener: Listener
 ) => Unsubscribe;
 
