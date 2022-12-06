@@ -58,12 +58,13 @@ import type {
   UpdatePart,
   UpdatePartArgs,
   UpdatePartConfig,
+  IsEqual,
 } from './types';
 
 function createBoundSelector<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>
->(parts: Parts, get: Selector) {
+>(parts: Parts, get: Selector, isEqual: IsEqual<ReturnType<Selector>>) {
   let values: SelectPartArgs<Parts>;
   let result: ReturnType<Selector>;
 
@@ -81,7 +82,11 @@ function createBoundSelector<
     values = nextValues;
 
     if (hasChanged) {
-      result = get(...nextValues);
+      const nextResult = get(...nextValues);
+
+      if (!isEqual(result, nextResult)) {
+        result = nextResult;
+      }
     }
 
     return result;
@@ -114,10 +119,19 @@ function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
 }
 
 function createUnboundSelector<Selector extends AnyGenericSelector>(
-  get: Selector
+  get: Selector,
+  isEqual: IsEqual<ReturnType<Selector>>
 ) {
+  let result: ReturnType<Selector>;
+
   return function select(getState: GetState): ReturnType<Selector> {
-    return get(getState);
+    const nextResult = get(getState);
+
+    if (!isEqual(result, nextResult)) {
+      result = nextResult;
+    }
+
+    return result;
   };
 }
 
@@ -256,13 +270,12 @@ export function createBoundSelectPart<
 >(config: BoundSelectPartConfig<Parts, Selector>) {
   const { get, isEqual = is, parts } = config;
 
-  const select = createBoundSelector(parts, get);
+  const select = createBoundSelector(parts, get, isEqual);
   const part = select as BoundSelectPart<Parts, Selector>;
 
   part.id = getId('BoundSelectPart');
 
   part.d = getDescendantParts(parts);
-  part.e = isEqual;
   part.f = SELECT_PART as BoundSelectPart<Parts, Selector>['f'];
   part.g = select;
   part.s = noop;
@@ -275,13 +288,12 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
 ): UnboundSelectPart<Selector> {
   const { get, isEqual = is } = config;
 
-  const select = createUnboundSelector(get);
+  const select = createUnboundSelector(get, isEqual);
   const part = select as UnboundSelectPart<Selector>;
 
   part.id = getId('UnboundSelectPart');
 
   part.d = FULL_STATE_DEPENDENCY;
-  part.e = isEqual;
   part.f = SELECT_PART as UnboundSelectPart<Selector>['f'];
   part.g = select;
   part.s = noop;
@@ -298,7 +310,7 @@ export function createBoundProxyPart<
 ): BoundProxyPart<Parts, Selector, Updater> {
   const { get, isEqual = is, parts, set } = config;
 
-  const select = createBoundSelector(parts, get);
+  const select = createBoundSelector(parts, get, isEqual);
   const update = createUpdate(set);
 
   const part = {} as BoundProxyPart<Parts, Selector, Updater>;
@@ -308,7 +320,6 @@ export function createBoundProxyPart<
   part.update = update;
 
   part.d = FULL_STATE_DEPENDENCY;
-  part.e = isEqual;
   part.f = PROXY_PART as BoundProxyPart<Parts, Selector, Updater>['f'];
   part.g = select;
   part.s = set;
@@ -324,7 +335,7 @@ export function createUnboundProxyPart<
 ): UnboundProxyPart<Selector, Updater> {
   const { get, isEqual = is, set } = config;
 
-  const select = createUnboundSelector(get);
+  const select = createUnboundSelector(get, isEqual);
   const update = createUpdate(set);
 
   const part = {} as UnboundProxyPart<Selector, Updater>;
@@ -334,7 +345,6 @@ export function createUnboundProxyPart<
   part.update = update;
 
   part.d = FULL_STATE_DEPENDENCY;
-  part.e = isEqual;
   part.f = PROXY_PART as UnboundProxyPart<Selector, Updater>['f'];
   part.g = get;
   part.s = set;

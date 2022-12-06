@@ -11,10 +11,6 @@ export type UseUpdateUpdater<Updater extends AnyUpdater> = (
   ...args: UpdatePartArgs<Updater>
 ) => ReturnType<Updater>;
 
-export type IsPartEqual<Part extends AnyPart> = Part extends AnySelectablePart
-  ? IsEqual<Part['g']>
-  : IsEqual<undefined>;
-
 export type UsePartPair<Part extends AnyPart> = [
   UsePartValue<Part>,
   UsePartUpdate<Part>

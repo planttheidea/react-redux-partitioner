@@ -169,7 +169,6 @@ export interface UnboundSelectPart<Selector extends AnyGenericSelector>
   (getState: GetState): ReturnType<Selector>;
 
   d: FullStateDependency;
-  e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
 }
 
@@ -180,7 +179,6 @@ export interface BoundSelectPart<
   (getState: GetState): ReturnType<Selector>;
 
   d: AnyStatefulPart[];
-  e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
 }
 
@@ -280,7 +278,6 @@ export interface UnboundProxyPart<
   update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
   d: FullStateDependency;
-  e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
   s: Updater;
 }
@@ -294,7 +291,6 @@ export interface BoundProxyPart<
   update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
   d: AnyStatefulPart[];
-  e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
   s: Updater;
 }

@@ -2,7 +2,6 @@ import { useCallback, useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { is, noop } from './utils';
-import { isSelectPart } from './validate';
 
 import type {
   AnyPart,
@@ -13,14 +12,10 @@ import type {
   UsePartUpdate,
   Store,
   UpdatePartArgs,
-  IsPartEqual,
 } from './types';
 
-export function usePart<Part extends AnyPart>(
-  part: Part,
-  isEqual?: IsPartEqual<Part>
-): UsePartPair<Part> {
-  return [usePartValue(part, isEqual), usePartUpdate(part)];
+export function usePart<Part extends AnyPart>(part: Part): UsePartPair<Part> {
+  return [usePartValue(part), usePartUpdate(part)];
 }
 
 export function usePartUpdate<Part extends AnyPart>(
@@ -44,8 +39,7 @@ export function usePartUpdate<Part extends AnyPart>(
 }
 
 export function usePartValue<Part extends AnyPart>(
-  part: Part,
-  isEqual?: IsPartEqual<Part>
+  part: Part
 ): UsePartValue<Part> {
   const context = useContext(ReactReduxContext);
   const getServerState = context.getServerState;
@@ -62,23 +56,11 @@ export function usePartValue<Part extends AnyPart>(
     [store, part]
   );
 
-  const isSnapshotEqual = useMemo(() => {
-    if (isEqual) {
-      return isEqual;
-    }
-
-    if (isSelectPart(part)) {
-      return part.e;
-    }
-
-    return is;
-  }, [part, isEqual]);
-
   return useSyncExternalStoreWithSelector(
     subscribe,
     store.getState,
     getServerState || store.getState,
     getSnapshot,
-    isSnapshotEqual
+    is
   );
 }
