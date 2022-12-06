@@ -1,4 +1,5 @@
 import type { Dispatch } from 'redux';
+import type { FullStateDependency, IgnoreAllDependencies } from '../constants';
 import type {
   COMPOSED_PART,
   PRIMITIVE_PART,
@@ -167,7 +168,7 @@ export interface UnboundSelectPart<Selector extends AnyGenericSelector>
   extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
-  d: [];
+  d: FullStateDependency;
   e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
 }
@@ -205,7 +206,7 @@ export interface UpdatePartConfig<Updater extends AnyUpdater>
 export interface UpdatePart<Updater extends AnyUpdater> extends BasePart {
   (...rest: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
-  d: [];
+  d: IgnoreAllDependencies;
   f: typeof UPDATE_PART;
   g: () => void;
   s: Updater;
@@ -278,7 +279,7 @@ export interface UnboundProxyPart<
   select(getState: GetState): ReturnType<Selector>;
   update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
-  d: [];
+  d: FullStateDependency;
   e: IsEqual<ReturnType<Selector>>;
   g: Get<ReturnType<Selector>>;
   s: Updater;

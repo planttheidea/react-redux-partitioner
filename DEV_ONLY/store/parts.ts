@@ -87,6 +87,8 @@ export const userProxy = part(
   }
 );
 
+export const userProxySelect = part([userProxy], (user) => user);
+
 export const descriptionPart = part({
   name: 'description',
   initialState: 'Hello!',

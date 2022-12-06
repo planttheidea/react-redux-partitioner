@@ -1,3 +1,4 @@
+import { FULL_STATE_DEPENDENCY } from './constants';
 import type { AnySelectablePart, AnyStatefulPart, PartId } from './types';
 
 export function getDescendantParts(
@@ -5,13 +6,22 @@ export function getDescendantParts(
 ): AnyStatefulPart[] {
   const descendantParts: AnyStatefulPart[] = [];
 
-  parts.forEach((part) => {
-    part.d.forEach((descendantPart) => {
-      if (!~descendantParts.indexOf(descendantPart)) {
-        descendantParts.push(descendantPart);
+  for (let index = 0; index < parts.length; ++index) {
+    const part = parts[index];
+    const dependencies = part.d;
+
+    if (dependencies === FULL_STATE_DEPENDENCY) {
+      return FULL_STATE_DEPENDENCY;
+    }
+
+    for (let innerIndex = 0; innerIndex < dependencies.length; ++innerIndex) {
+      const dependency = dependencies[innerIndex];
+
+      if (!~descendantParts.indexOf(dependency)) {
+        descendantParts.push(dependency);
       }
-    });
-  });
+    }
+  }
 
   return descendantParts;
 }

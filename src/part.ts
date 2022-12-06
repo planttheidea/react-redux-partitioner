@@ -24,6 +24,7 @@ import {
   isUpdater,
   isBoundProxyConfig,
   isUnboundProxyConfig,
+  isSelectablePartsList,
 } from './validate';
 
 import type { AnyAction, Dispatch, Reducer } from 'redux';
@@ -57,7 +58,7 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
-import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
+import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
 
 function createComposedReducer<State>(
   name: keyof State,
@@ -246,7 +247,7 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
 
   part.id = getId('UnboundSelectPart');
 
-  part.d = ALL_DEPENDENCIES;
+  part.d = FULL_STATE_DEPENDENCY;
   part.e = isEqual;
   part.f = SELECT_PART as UnboundSelectPart<Selector>['f'];
   part.g = select;
@@ -280,7 +281,7 @@ export function createBoundProxyPart<
   part.select = select;
   part.update = update;
 
-  part.d = ALL_DEPENDENCIES;
+  part.d = FULL_STATE_DEPENDENCY;
   part.e = isEqual;
   part.f = PROXY_PART as BoundProxyPart<Parts, Selector, Updater>['f'];
   part.g = select;
@@ -311,7 +312,7 @@ export function createUnboundProxyPart<
   part.select = select;
   part.update = update;
 
-  part.d = ALL_DEPENDENCIES;
+  part.d = FULL_STATE_DEPENDENCY;
   part.e = isEqual;
   part.f = PROXY_PART as UnboundProxyPart<Selector, Updater>['f'];
   part.g = get;
@@ -332,7 +333,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 
   part.id = getId('UpdatePart');
 
-  part.d = NO_DEPENDENCIES;
+  part.d = IGNORE_ALL_DEPENDENCIES;
   part.f = UPDATE_PART as UpdatePart<Updater>['f'];
   part.g = noop;
   part.s = set;
@@ -498,7 +499,7 @@ export function part<
     });
   }
 
-  if (isStatefulPartsList(first)) {
+  if (isSelectablePartsList(first)) {
     if (isSelector(second)) {
       return isUpdater(third)
         ? createBoundProxyPart({ get: second, parts: first, set: third })

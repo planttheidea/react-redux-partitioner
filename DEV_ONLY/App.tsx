@@ -39,6 +39,7 @@ import {
   todosPart,
   toggleUpdate,
   userProxy,
+  userProxySelect,
 } from './store/parts';
 
 store.subscribe(() => {
@@ -201,6 +202,10 @@ const User = withParts({ user: userProxy })(function User({
   user: [user, setUser],
 }: UserProps) {
   console.count('user');
+
+  const alsoUser = usePartValue(userProxySelect);
+
+  console.log({ user, alsoUser });
 
   useAfterTimeout(() => setUser({ id: 'nextId', name: 'New Name' }), 3500);
 

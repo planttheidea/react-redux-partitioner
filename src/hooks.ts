@@ -16,7 +16,7 @@ import type {
   IsPartEqual,
 } from './types';
 import { is, noop } from './utils';
-import { ALL_DEPENDENCIES, NO_DEPENDENCIES } from './constants';
+import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
 
 function noopSubscribe() {
   return noop;
@@ -60,11 +60,11 @@ export function usePartValue<Part extends AnyPart>(
   const subscribe = useMemo(() => {
     const dependencies = part.d;
 
-    if (dependencies === ALL_DEPENDENCIES) {
+    if (dependencies === FULL_STATE_DEPENDENCY) {
       return store.subscribe;
     }
 
-    if (dependencies === NO_DEPENDENCIES || !dependencies.length) {
+    if (dependencies === IGNORE_ALL_DEPENDENCIES || !dependencies.length) {
       return noopSubscribe;
     }
 

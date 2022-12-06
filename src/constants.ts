@@ -1,7 +1,7 @@
 type DependencyType<Type> = [] & { __t: Type };
 
-export type AllDepencencies = DependencyType<'ALL'>;
-export type NoDependencies = DependencyType<'NONE'>;
+export type FullStateDependency = DependencyType<'FULL_STATE'>;
+export type IgnoreAllDependencies = DependencyType<'IGNORE_ALL'>;
 
-export const ALL_DEPENDENCIES = [] as AllDepencencies;
-export const NO_DEPENDENCIES = [] as NoDependencies;
+export const FULL_STATE_DEPENDENCY = [] as FullStateDependency;
+export const IGNORE_ALL_DEPENDENCIES = [] as IgnoreAllDependencies;
