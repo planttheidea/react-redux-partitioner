@@ -232,7 +232,7 @@ const selectPriorityTodos = part([todosPart], (todos) =>
 );
 ```
 
-In this case, if a todo is added with a value of `(P)` on the end, it is considered priority. It then can be used in your components as needed:
+In this case, the selector will run every time `todos` change in state, and if a todo is added with a value of `(P)` on the end, it is considered priority. It then can be used in your components as needed:
 
 ```tsx
 function TodoList() {
@@ -244,6 +244,16 @@ function TodoList() {
 ```
 
 Notice above the [`usePartValue` hook](#usepartvalue) is used instead of `usePart`. While both will work the same, it is generally a good convention to use `usePartValue` with Select Parts since the update method cannot be used.
+
+You can also create a Select Part that is not based on any other Parts, but rather will execute on any state change.
+
+```ts
+const selectPriorityTodos = part((todos) =>
+  todos.filter((todo) => todo.value.endsWith('(P)'))
+);
+```
+
+This if mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
 #### Update Parts
 
@@ -312,6 +322,22 @@ function Name() {
 ```
 
 Notice that `usePart` can be used as if the Proxy Part was itself a member of state.
+
+You can also create a Proxy Part that is not based on any other Parts, but rather will execute on any state change.
+
+```ts
+const proxyName = part(
+  (firstName, lastName) => `${firstName} ${lastName}`,
+  (dispatch, _, nextName: string) => {
+    const [first, last] = nextName.split(' ');
+
+    dispatch(firstNamePart(first));
+    dispatch(lastNamePart(last));
+  }
+);
+```
+
+This if mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
 ## Store enhancements
 
