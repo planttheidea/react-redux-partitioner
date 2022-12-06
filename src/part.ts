@@ -155,7 +155,7 @@ export function createComposedPart<
       : state;
   part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(part) as State)
+      ? update(part.g(getState))
       : update;
 
     return dispatch(part(nextValue));
@@ -197,7 +197,7 @@ export function createPrimitivePart<Name extends string, State>(
       : state;
   part.s = (getState, dispatch, update) => {
     const nextValue = isFunctionalUpdate<State>(update)
-      ? update(getState(part) as State)
+      ? update(part.g(getState))
       : update;
 
     return dispatch(part(nextValue));
@@ -213,7 +213,9 @@ export function createBoundSelectPart<
   const { get, isEqual = is, parts } = config;
 
   const select = function select(getState: GetState): ReturnType<Selector> {
-    const values = parts.map(getState) as SelectPartArgs<Parts>;
+    const values = parts.map((part) =>
+      part.g(getState)
+    ) as SelectPartArgs<Parts>;
 
     return get(...values);
   };
@@ -371,7 +373,7 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
     ) {
       const update = getValue(...rest);
       const nextValue = isFunctionalUpdate(update)
-        ? update(getState(part))
+        ? update(part.g(getState))
         : update;
 
       return dispatch<PartAction<Part['i']>>({
