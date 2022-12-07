@@ -21,6 +21,8 @@ import type {
 import { getStatefulPartMap, noop, updateUniqueList } from './utils';
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
 
+const EMPTY_LISTENERS: [Listener[] | null, Listener[]] = [[], []];
+
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
   notifier: Notifier = (notify) => notify()
@@ -35,8 +37,11 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       reducer: StoreReducer,
       preloadedState: PreloadedState<PartedState> | undefined
     ) {
-      const partMap: Record<string, AnyStatefulPart> =
-        getStatefulPartMap(parts);
+      const partMap = getStatefulPartMap(parts);
+      const partListenerMap = {} as Record<
+        number,
+        [Listener[] | null, Listener[]]
+      >;
 
       const store = createStore(reducer, preloadedState);
       const notifyPartsQueue: AnySelectablePart[] = [];
@@ -44,8 +49,6 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       const originalGetState = store.getState;
 
       let batch = notifier || ((notify: Notify) => notify());
-      let partListeners: Record<string, Listener[]> | null = {};
-      let nextPartListeners = partListeners!;
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
 
@@ -103,18 +106,20 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           listeners[index]();
         }
 
-        partListeners = nextPartListeners;
-
         while (notifyPartsQueue.length > 0) {
           notifyPartListener(notifyPartsQueue.pop()!);
         }
       }
 
       function notifyPartListener(part: AnySelectablePart) {
-        const listeners = nextPartListeners[part.id] || [];
+        const partListeners = partListenerMap[part.id];
 
-        for (let index = 0; index < listeners.length; ++index) {
-          listeners[index]();
+        if (partListeners) {
+          const listeners = (partListeners[0] = partListeners[1]);
+
+          for (let index = 0; index < listeners.length; ++index) {
+            listeners[index]();
+          }
         }
 
         part.d.forEach(notifyPartListener);
@@ -151,6 +156,12 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           return noop;
         }
 
+        if (!partListenerMap[part.id]) {
+          const initialListeners: Listener[] = [];
+
+          partListenerMap[part.id] = [initialListeners, initialListeners];
+        }
+
         if ((part as any).b === false) {
           subscribe(listener);
         }
@@ -173,33 +184,19 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         listener: Listener,
         add: boolean
       ) {
-        const { id } = part;
+        const partListeners = partListenerMap[part.id];
 
-        if (
-          nextPartListeners === partListeners ||
-          !partListeners ||
-          !partListeners[id]
-        ) {
-          const listeners = nextPartListeners[id];
+        let [currentPartListeners, nextPartListeners] = partListeners;
 
-          nextPartListeners = {
-            ...nextPartListeners,
-            [id]: listeners ? listeners.slice(0) : [],
-          };
+        if (nextPartListeners === currentPartListeners) {
+          nextPartListeners = partListeners[1] = nextPartListeners.slice(0);
         }
 
         if (add) {
-          nextPartListeners[id].push(listener);
+          nextPartListeners.push(listener);
         } else {
-          const listeners = nextPartListeners[id];
-
-          listeners.splice(listeners.indexOf(listener), 1);
-
-          if (!listeners.length) {
-            delete nextPartListeners[id];
-          }
-
-          partListeners = null;
+          nextPartListeners.splice(nextPartListeners.indexOf(listener), 1);
+          partListeners[0] = null;
         }
       }
 
