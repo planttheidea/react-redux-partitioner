@@ -49,7 +49,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       const originalGetState = store.getState;
 
       let batch = notifier || ((notify: Notify) => notify());
-      let notifyPartsQueue: PartId[] = [];
+      let notifyPartsQueue: AnySelectablePart[] = [];
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
 
@@ -85,7 +85,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
             );
           }
 
-          addToNotifyPartsQueue(notifyPartsQueue, part);
+          updateUniqueList(notifyPartsQueue, part);
         }
 
         const prev = originalGetState();
@@ -126,8 +126,16 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
 
         notifyPartsQueue = [];
 
+        // Delay the construction of parts to notify until notification is required, in case there are
+        // timing concidences related to parts added / removed as dependents, which could impact
+        // the notification tree.
+        const partsToNotify: PartId[] = [];
         for (let index = 0; index < nextNotifyPartsQueue.length; ++index) {
-          const partListeners = partListenerMap[nextNotifyPartsQueue[index]];
+          addToNotifyPartsQueue(partsToNotify, nextNotifyPartsQueue[index]);
+        }
+
+        for (let index = 0; index < partsToNotify.length; ++index) {
+          const partListeners = partListenerMap[partsToNotify[index]];
 
           if (!partListeners) {
             continue;
