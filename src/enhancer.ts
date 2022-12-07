@@ -18,7 +18,7 @@ import type {
   Unsubscribe,
   AnySelectablePart,
 } from './types';
-import { getStatefulPartMap, noop } from './utils';
+import { getStatefulPartMap, noop, updateUniqueList } from './utils';
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
 
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
@@ -60,11 +60,11 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
             );
           }
 
-          queueNotifyPart(part);
+          updateUniqueList(notifyPartsQueue, part);
 
           if (isComposedPart(part)) {
             for (let index = 0; index < part.d.length; ++index) {
-              queueNotifyPart(part.d[index]);
+              updateUniqueList(notifyPartsQueue, part.d[index]);
             }
           }
         }
@@ -118,12 +118,6 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         }
 
         part.d.forEach(notifyPartListener);
-      }
-
-      function queueNotifyPart(part: AnySelectablePart) {
-        if (!~notifyPartsQueue.indexOf(part)) {
-          notifyPartsQueue.push(part);
-        }
       }
 
       function subscribe(listener: Listener): Unsubscribe {

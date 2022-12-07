@@ -6,7 +6,14 @@ import {
   SELECT_PART,
   UPDATE_PART,
 } from './flags';
-import { getId, identity, is, noop, toScreamingSnakeCase } from './utils';
+import {
+  getId,
+  identity,
+  is,
+  noop,
+  toScreamingSnakeCase,
+  updateUniqueList,
+} from './utils';
 import {
   isBoundSelectConfig,
   isComposedConfig,
@@ -142,7 +149,7 @@ function getDescendantSelectDependents(parts: readonly AnySelectablePart[]) {
   return parts.reduce((dependents, part) => {
     part.d.forEach((partDependent) => {
       if (isSelectPart(partDependent) || isProxyPart(partDependent)) {
-        updateDependencies(dependents, partDependent);
+        updateUniqueList(dependents, partDependent);
       }
     });
 
@@ -168,21 +175,21 @@ function isFunctionalUpdate<State>(
   return typeof value === 'function';
 }
 
-function updateDependencies(
-  dependencies: AnySelectablePart[],
-  part: AnySelectablePart
-) {
-  if (!~dependencies.indexOf(part)) {
-    dependencies.push(part);
-  }
-}
-
 function updateSelectableDependencies(
   dependencies: readonly AnySelectablePart[],
   part: AnySelectablePart
 ) {
   dependencies.forEach((dependency) => {
-    updateDependencies(dependency.d, part);
+    updateUniqueList(dependency.d, part);
+
+    // If the item is a nested state value, traverse up
+    // its stateful dependents to ensure any updates to
+    // state ancestors also trigger listeners.
+    dependency.d.forEach((dependencyDependent) => {
+      if (isStatefulPart(dependencyDependent)) {
+        updateUniqueList(dependencyDependent.d, part);
+      }
+    });
   });
 }
 
@@ -204,7 +211,7 @@ function updateStatefulDependencies<State>(
     dependency.r = reducer;
     dependency.t = type;
 
-    updateDependencies(dependency.d, part);
+    updateUniqueList(dependency.d, part);
     updateStatefulDependencies<State>(dependency.c, part, name);
   });
 }

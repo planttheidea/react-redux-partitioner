@@ -45,6 +45,15 @@ export const fullNameSelect = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`
 );
+
+export const idPart = part('id', 'asdfsfdasfdsdsgafds');
+
+export const newUserUpdate = idPart.update('NEW_USER_ID');
+
+export const userPart = part({
+  name: 'user',
+  parts: [idPart, namePart],
+});
 export const fullNameProxy = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`,
@@ -58,15 +67,6 @@ export const fullNameProxy = part(
     }
   }
 );
-
-export const idPart = part('id', 'asdfsfdasfdsdsgafds');
-
-export const newUserUpdate = idPart.update('NEW_USER_ID');
-
-export const userPart = part({
-  name: 'user',
-  parts: [idPart, namePart],
-});
 
 console.log({ user: userPart.toString(), firstName: firstNamePart.toString() });
 

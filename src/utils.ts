@@ -54,3 +54,9 @@ export function toScreamingSnakeCase(string: string): string {
     .join('_')
     .toUpperCase();
 }
+
+export function updateUniqueList(list: any[], item: any) {
+  if (!~list.indexOf(item)) {
+    list.push(item);
+  }
+}
