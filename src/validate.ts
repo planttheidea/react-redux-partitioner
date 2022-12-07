@@ -1,6 +1,7 @@
 import {
   COMPOSED_PART,
   PART,
+  PROXY_PART,
   SELECTABLE_PART,
   SELECT_PART,
   STATEFUL_PART,
@@ -11,6 +12,7 @@ import {
 import type {
   AnyComposedPart,
   AnyPart,
+  AnyProxyPart,
   AnySelectablePart,
   AnySelector,
   AnySelectPart,
@@ -81,6 +83,10 @@ export function isPrimitiveConfig(
   value: any
 ): value is PrimitivePartConfig<string, any> {
   return typeof value === 'object' && value !== null && 'initialState' in value;
+}
+
+export function isProxyPart(value: any): value is AnyProxyPart {
+  return !!(value && value.f & PROXY_PART);
 }
 
 export function isSelectablePart(value: any): value is AnySelectablePart {

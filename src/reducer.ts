@@ -1,6 +1,6 @@
 // @ts-expect-error - `ActionTypes` not on public redux API
 import { __DO_NOT_USE__ActionTypes as ActionTypes } from 'redux';
-import { is } from './utils';
+import { getStatefulPartMap, is } from './utils';
 import { isPartAction } from './validate';
 
 import type {
@@ -85,21 +85,12 @@ export function createPartsReducer<
 >(parts: Parts) {
   type State = CombinedPartsState<Parts>;
 
-  const partMap: Record<string, AnyStatefulPart> = {};
+  const partMap = getStatefulPartMap(parts);
   const initialState = parts.reduce<State>((initialState, part) => {
     initialState[part.n as keyof State] = part.i;
 
     return initialState;
   }, {} as State);
-
-  const allParts = parts.reduce(
-    (partList, part) => [...partList, part, ...part.d],
-    [] as AnyStatefulPart[]
-  );
-
-  allParts.forEach((part) => {
-    partMap[part.id] = part;
-  });
 
   return function partsReducer(
     state: State = initialState,

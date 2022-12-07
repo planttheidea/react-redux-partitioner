@@ -1,5 +1,5 @@
 import type { Dispatch } from 'redux';
-import type { FullStateDependency, IgnoreAllDependencies } from '../constants';
+import type { IgnoreAllDependencies } from '../constants';
 import type {
   COMPOSED_PART,
   PRIMITIVE_PART,
@@ -62,7 +62,7 @@ export interface ComposedPartConfig<
 export interface BasePart {
   id: PartId;
 
-  d: AnyStatefulPart[];
+  d: AnySelectablePart[];
 }
 
 export type GetValueUpdater<State, GetValue extends AnyGetValue<State>> = (
@@ -87,6 +87,7 @@ export interface BaseStatefulPart<Name extends string, State> extends BasePart {
   toString(): string;
   update: StatefulPartUpdater<State>;
 
+  c: AnyStatefulPart[];
   f: typeof STATEFUL_PART;
   g: Get<State>;
   i: State;
@@ -160,6 +161,7 @@ export type AnySelector<
 export type AnyGenericSelector = (getState: GetState) => any;
 
 export interface BaseSelectPart extends BasePart {
+  b: boolean;
   f: typeof SELECT_PART;
   s: () => void;
 }
@@ -168,7 +170,6 @@ export interface UnboundSelectPart<Selector extends AnyGenericSelector>
   extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
-  d: FullStateDependency;
   g: Get<ReturnType<Selector>>;
 }
 
@@ -178,7 +179,6 @@ export interface BoundSelectPart<
 > extends BaseSelectPart {
   (getState: GetState): ReturnType<Selector>;
 
-  d: AnyStatefulPart[];
   g: Get<ReturnType<Selector>>;
 }
 
@@ -267,6 +267,7 @@ export interface UnboundProxyPartConfig<
 }
 
 export interface BaseProxyPart extends BasePart {
+  b: boolean;
   f: typeof PROXY_PART;
 }
 
@@ -277,7 +278,6 @@ export interface UnboundProxyPart<
   select(getState: GetState): ReturnType<Selector>;
   update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
-  d: FullStateDependency;
   g: Get<ReturnType<Selector>>;
   s: Updater;
 }
@@ -290,7 +290,6 @@ export interface BoundProxyPart<
   select(getState: GetState): ReturnType<Selector>;
   update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
-  d: AnyStatefulPart[];
   g: Get<ReturnType<Selector>>;
   s: Updater;
 }

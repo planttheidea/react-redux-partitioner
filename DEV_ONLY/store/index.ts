@@ -23,8 +23,8 @@ const legacy = (state: string = 'legacy', action: AnyAction) => {
 export type ReduxState = ReturnType<typeof reducer>;
 export type MyStore = Store<ReduxState>;
 
-const logging = true;
 // const logging = true;
+const logging = false;
 const logger: Middleware<MyStore> = () => (next) => (action) => {
   if (logging) {
     console.group(action);

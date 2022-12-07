@@ -1,33 +1,17 @@
-import { FULL_STATE_DEPENDENCY } from './constants';
-import type { AnySelectablePart, AnyStatefulPart, PartId } from './types';
+import type { AnyStatefulPart, PartId } from './types';
 
-export function getDependencies(
-  parts: readonly AnySelectablePart[]
-): AnyStatefulPart[] {
-  const dependencies: AnyStatefulPart[] = [];
+export function getStatefulPartMap(parts: readonly AnyStatefulPart[]) {
+  let partMap = {} as Record<number, AnyStatefulPart>;
 
-  for (let index = 0; index < parts.length; ++index) {
-    const part = parts[index];
-    const partDependencies = part.d;
+  parts.forEach((part) => {
+    partMap[part.id] = part;
 
-    if (partDependencies === FULL_STATE_DEPENDENCY) {
-      return FULL_STATE_DEPENDENCY;
+    if (part.c) {
+      partMap = { ...partMap, ...getStatefulPartMap(part.c) };
     }
+  });
 
-    for (
-      let innerIndex = 0;
-      innerIndex < partDependencies.length;
-      ++innerIndex
-    ) {
-      const dependency = partDependencies[innerIndex];
-
-      if (!~dependencies.indexOf(dependency)) {
-        dependencies.push(dependency);
-      }
-    }
-  }
-
-  return dependencies;
+  return partMap;
 }
 
 let hashId = 0;

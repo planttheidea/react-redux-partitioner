@@ -12,15 +12,14 @@ import type {
   Listener,
   Notifier,
   Notify,
-  PartId,
   PartState,
   CombinedPartsState,
   PartsStoreExtensions,
   Unsubscribe,
   AnySelectablePart,
 } from './types';
-import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
-import { noop } from './utils';
+import { getStatefulPartMap, noop } from './utils';
+import { IGNORE_ALL_DEPENDENCIES } from './constants';
 
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
@@ -36,18 +35,11 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       reducer: StoreReducer,
       preloadedState: PreloadedState<PartedState> | undefined
     ) {
-      const partMap: Record<string, AnyStatefulPart> = {};
-
-      parts.forEach((part) => {
-        part.d.forEach((dependency) => {
-          partMap[dependency.id] = dependency;
-        });
-
-        partMap[part.id] = part;
-      });
+      const partMap: Record<string, AnyStatefulPart> =
+        getStatefulPartMap(parts);
 
       const store = createStore(reducer, preloadedState);
-      const notifyPartsQueue: PartId[] = [];
+      const notifyPartsQueue: AnySelectablePart[] = [];
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
 
@@ -60,7 +52,6 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       function dispatch(action: any) {
         if (isPartAction(action)) {
           const id = action.$$part;
-
           const part = partMap[id];
 
           if (!part) {
@@ -83,7 +74,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         const next = originalGetState();
 
         if (prev !== next) {
-          notifyListeners();
+          notify();
         }
 
         return result;
@@ -102,35 +93,36 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       }
 
       function notify() {
+        batch(notifyListeners);
+      }
+
+      function notifyListeners() {
         const listeners = (storeListeners = nextStoreListeners);
 
         for (let index = 0; index < listeners.length; ++index) {
           listeners[index]();
         }
 
-        const allPartListeners = (partListeners = nextPartListeners);
+        partListeners = nextPartListeners;
 
         while (notifyPartsQueue.length > 0) {
-          const id = notifyPartsQueue.pop()!;
-          const partListeners = allPartListeners[id];
-
-          if (!partListeners) {
-            continue;
-          }
-
-          for (let index = 0; index < partListeners.length; ++index) {
-            partListeners[index]();
-          }
+          notifyPartListener(notifyPartsQueue.pop()!);
         }
       }
 
-      function notifyListeners() {
-        batch(notify);
+      function notifyPartListener(part: AnySelectablePart) {
+        const listeners = nextPartListeners[part.id] || [];
+
+        for (let index = 0; index < listeners.length; ++index) {
+          listeners[index]();
+        }
+
+        part.d.forEach(notifyPartListener);
       }
 
-      function queueNotifyPart(part: AnyStatefulPart) {
-        if (!~notifyPartsQueue.indexOf(part.id)) {
-          notifyPartsQueue.push(part.id);
+      function queueNotifyPart(part: AnySelectablePart) {
+        if (!~notifyPartsQueue.indexOf(part)) {
+          notifyPartsQueue.push(part);
         }
       }
 
@@ -161,21 +153,16 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           );
         }
 
-        const dependencies = part.d;
-
-        if (dependencies === FULL_STATE_DEPENDENCY) {
-          return subscribe(listener);
-        }
-
-        if (dependencies === IGNORE_ALL_DEPENDENCIES || !dependencies.length) {
+        if (part.d === IGNORE_ALL_DEPENDENCIES) {
           return noop;
         }
 
-        let subscribed = true;
-
-        for (let index = 0; index < dependencies.length; ++index) {
-          updatePartListeners(dependencies[index].id, listener, true);
+        if ((part as any).b === false) {
+          subscribe(listener);
         }
+
+        let subscribed = true;
+        updatePartListeners(part, listener, true);
 
         return () => {
           if (!subscribed) {
@@ -183,18 +170,17 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           }
 
           subscribed = false;
-
-          for (let index = 0; index < dependencies.length; ++index) {
-            updatePartListeners(dependencies[index].id, listener, false);
-          }
+          updatePartListeners(part, listener, false);
         };
       }
 
       function updatePartListeners(
-        id: PartId,
+        part: AnySelectablePart,
         listener: Listener,
         add: boolean
       ) {
+        const { id } = part;
+
         if (
           nextPartListeners === partListeners ||
           !partListeners ||

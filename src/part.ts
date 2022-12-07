@@ -1,4 +1,4 @@
-import { FULL_STATE_DEPENDENCY, IGNORE_ALL_DEPENDENCIES } from './constants';
+import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import {
   COMPOSED_PART,
   PRIMITIVE_PART,
@@ -6,14 +6,7 @@ import {
   SELECT_PART,
   UPDATE_PART,
 } from './flags';
-import {
-  getDependencies,
-  getId,
-  identity,
-  is,
-  noop,
-  toScreamingSnakeCase,
-} from './utils';
+import { getId, identity, is, noop, toScreamingSnakeCase } from './utils';
 import {
   isBoundSelectConfig,
   isComposedConfig,
@@ -26,6 +19,9 @@ import {
   isBoundProxyConfig,
   isUnboundProxyConfig,
   isSelectablePartsList,
+  isStatefulPart,
+  isSelectPart,
+  isProxyPart,
 } from './validate';
 
 import type { AnyAction, Dispatch, Reducer } from 'redux';
@@ -40,12 +36,13 @@ import type {
   BoundProxyPartConfig,
   BoundSelectPart,
   BoundSelectPartConfig,
+  CombinedPartsState,
   ComposedPart,
   ComposedPartConfig,
   FunctionalUpdate,
   GetState,
+  IsEqual,
   PartAction,
-  CombinedPartsState,
   PrimitivePart,
   PrimitivePartConfig,
   SelectPartArgs,
@@ -58,7 +55,6 @@ import type {
   UpdatePart,
   UpdatePartArgs,
   UpdatePartConfig,
-  IsEqual,
 } from './types';
 
 function createBoundSelector<
@@ -142,6 +138,22 @@ function createUpdate<Updater extends AnyUpdater>(set: Updater) {
   };
 }
 
+function getDescendantSelectDependents(parts: readonly AnySelectablePart[]) {
+  return parts.reduce((dependents, part) => {
+    part.d.forEach((partDependent) => {
+      if (isSelectPart(partDependent) || isProxyPart(partDependent)) {
+        updateDependencies(dependents, partDependent);
+      }
+    });
+
+    if (isStatefulPart(part)) {
+      dependents.push(...getDescendantSelectDependents(part.c));
+    }
+
+    return dependents;
+  }, [] as AnySelectablePart[]);
+}
+
 function getPrefixedType(path: string[], type: string): string {
   const prefix = path.slice(0, path.length - 1).join('.');
   const splitType = type.split('/');
@@ -156,34 +168,60 @@ function isFunctionalUpdate<State>(
   return typeof value === 'function';
 }
 
+function updateDependencies(
+  dependencies: AnySelectablePart[],
+  part: AnySelectablePart
+) {
+  if (!~dependencies.indexOf(part)) {
+    dependencies.push(part);
+  }
+}
+
+function updateSelectableDependencies(
+  dependencies: readonly AnySelectablePart[],
+  part: AnySelectablePart
+) {
+  dependencies.forEach((dependency) => {
+    updateDependencies(dependency.d, part);
+  });
+}
+
+function updateStatefulDependencies<State>(
+  dependencies: readonly AnyStatefulPart[],
+  part: AnyStatefulPart,
+  name: string
+) {
+  dependencies.forEach((dependency) => {
+    const path = [name, ...dependency.p];
+    const reducer = createComposedReducer<State>(
+      dependency.o as keyof State,
+      dependency.r
+    );
+    const type = getPrefixedType(path, dependency.t);
+
+    dependency.o = name;
+    dependency.p = path;
+    dependency.r = reducer;
+    dependency.t = type;
+
+    updateDependencies(dependency.d, part);
+    updateStatefulDependencies<State>(dependency.c, part, name);
+  });
+}
+
 export function createComposedPart<
   Name extends string,
   Parts extends Tuple<AnyStatefulPart>
 >(config: ComposedPartConfig<Name, Parts>): ComposedPart<Name, Parts> {
   type State = CombinedPartsState<[...Parts]>;
 
-  const { name, parts: baseParts } = config;
+  const { name, parts } = config;
 
-  const dependencies = getDependencies(baseParts);
-  const initialState = baseParts.reduce((state, childPart) => {
+  const initialState = parts.reduce((state, childPart) => {
     state[childPart.n as keyof State] = childPart.i;
 
     return state;
   }, {} as State);
-
-  dependencies.forEach((dependency) => {
-    const path = [name, ...dependency.p];
-    const type = getPrefixedType(path, dependency.t);
-    const nextReducer = createComposedReducer<State>(
-      dependency.o,
-      dependency.r
-    );
-
-    dependency.o = name;
-    dependency.p = path;
-    dependency.r = nextReducer;
-    dependency.t = type;
-  });
 
   const part: ComposedPart<Name, Parts> = function actionCreator(
     nextValue: State
@@ -199,7 +237,8 @@ export function createComposedPart<
   part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
-  part.d = dependencies;
+  part.c = [...parts];
+  part.d = getDescendantSelectDependents(parts);
   part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
   part.g = createStatefulGet(part);
   part.i = initialState;
@@ -218,6 +257,8 @@ export function createComposedPart<
     return dispatch(part(nextValue));
   };
   part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
+
+  updateStatefulDependencies<State>(parts, part, name);
 
   return part;
 }
@@ -241,7 +282,8 @@ export function createPrimitivePart<Name extends string, State>(
   part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
-  part.d = [part];
+  part.c = [];
+  part.d = [];
   part.f = PRIMITIVE_PART as PrimitivePart<Name, State>['f'];
   part.g = createStatefulGet(part);
   part.i = initialState;
@@ -275,10 +317,13 @@ export function createBoundSelectPart<
 
   part.id = getId('BoundSelectPart');
 
-  part.d = getDependencies(parts);
+  part.b = true;
+  part.d = [];
   part.f = SELECT_PART as BoundSelectPart<Parts, Selector>['f'];
   part.g = select;
   part.s = noop;
+
+  updateSelectableDependencies(parts, part);
 
   return part;
 }
@@ -293,7 +338,8 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
 
   part.id = getId('UnboundSelectPart');
 
-  part.d = FULL_STATE_DEPENDENCY;
+  part.b = false;
+  part.d = [];
   part.f = SELECT_PART as UnboundSelectPart<Selector>['f'];
   part.g = select;
   part.s = noop;
@@ -319,10 +365,13 @@ export function createBoundProxyPart<
   part.select = select;
   part.update = update;
 
-  part.d = FULL_STATE_DEPENDENCY;
+  part.b = true;
+  part.d = [];
   part.f = PROXY_PART as BoundProxyPart<Parts, Selector, Updater>['f'];
   part.g = select;
   part.s = set;
+
+  updateSelectableDependencies(parts, part);
 
   return part;
 }
@@ -344,7 +393,8 @@ export function createUnboundProxyPart<
   part.select = select;
   part.update = update;
 
-  part.d = FULL_STATE_DEPENDENCY;
+  part.b = false;
+  part.d = [];
   part.f = PROXY_PART as UnboundProxyPart<Selector, Updater>['f'];
   part.g = get;
   part.s = set;
