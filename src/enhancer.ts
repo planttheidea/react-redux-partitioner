@@ -17,6 +17,7 @@ import type {
   PartsStoreExtensions,
   Unsubscribe,
   AnySelectablePart,
+  PartId,
 } from './types';
 import { getStatefulPartMap, noop, updateUniqueList } from './utils';
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
@@ -44,13 +45,34 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       >;
 
       const store = createStore(reducer, preloadedState);
-      const notifyPartsQueue: AnySelectablePart[] = [];
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
 
       let batch = notifier || ((notify: Notify) => notify());
+      let notifyPartsQueue: PartId[] = [];
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
+
+      /**
+       * Add the Part id as a unique entry to the queue to be notified, ensuring that any dependents
+       * that also need to be notified are included and in the order needed for future gets.
+       */
+      function addToNotifyPartsQueue(
+        partsToNotify: PartId[],
+        part: AnySelectablePart
+      ) {
+        const index = partsToNotify.indexOf(part.id);
+
+        partsToNotify.push(part.id);
+
+        if (index !== -1) {
+          partsToNotify.splice(index, 1);
+        }
+
+        for (let index = 0; index < part.d.length; ++index) {
+          addToNotifyPartsQueue(partsToNotify, part.d[index]);
+        }
+      }
 
       function dispatch(action: any) {
         if (isPartAction(action)) {
@@ -63,13 +85,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
             );
           }
 
-          updateUniqueList(notifyPartsQueue, part);
-
-          if (isComposedPart(part)) {
-            for (let index = 0; index < part.d.length; ++index) {
-              updateUniqueList(notifyPartsQueue, part.d[index]);
-            }
-          }
+          addToNotifyPartsQueue(notifyPartsQueue, part);
         }
 
         const prev = originalGetState();
@@ -106,23 +122,23 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           listeners[index]();
         }
 
-        while (notifyPartsQueue.length > 0) {
-          notifyPartListener(notifyPartsQueue.pop()!);
-        }
-      }
+        const nextNotifyPartsQueue = notifyPartsQueue;
 
-      function notifyPartListener(part: AnySelectablePart) {
-        const partListeners = partListenerMap[part.id];
+        notifyPartsQueue = [];
 
-        if (partListeners) {
+        for (let index = 0; index < nextNotifyPartsQueue.length; ++index) {
+          const partListeners = partListenerMap[nextNotifyPartsQueue[index]];
+
+          if (!partListeners) {
+            continue;
+          }
+
           const listeners = (partListeners[0] = partListeners[1]);
 
           for (let index = 0; index < listeners.length; ++index) {
             listeners[index]();
           }
         }
-
-        part.d.forEach(notifyPartListener);
       }
 
       function subscribe(listener: Listener): Unsubscribe {
