@@ -190,8 +190,12 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
             return;
           }
 
+          console.group('unsubscribed');
+
           subscribed = false;
           updatePartListeners(part, listener, false);
+
+          console.groupEnd();
         };
       }
 
@@ -211,8 +215,14 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         if (add) {
           nextPartListeners.push(listener);
         } else {
-          nextPartListeners.splice(nextPartListeners.indexOf(listener), 1);
-          partListeners[0] = null;
+          const index = nextPartListeners.indexOf(listener);
+
+          if (index === 0 && nextPartListeners.length === 1) {
+            delete partListenerMap[part.id];
+          } else if (index !== -1) {
+            nextPartListeners.splice(index, 1);
+            partListeners[0] = null;
+          }
         }
       }
 
