@@ -274,7 +274,7 @@ const selectPriorityTodos = part([selectTodos], (todos) =>
 );
 ```
 
-This `Promise` result supports `React.Suspense` handling use when used with `usePart`.
+This `Promise` result is supported by`React.Suspense` when used with `usePart` or `usePartValue`.
 
 ```tsx
 function Todos() {
