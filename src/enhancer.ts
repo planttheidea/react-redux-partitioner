@@ -52,6 +52,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       let notifyPartsQueue: AnySelectablePart[] = [];
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
+      let version: number = 0;
 
       /**
        * Add the Part id as a unique entry to the queue to be notified, ensuring that any dependents
@@ -93,6 +94,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         const next = originalGetState();
 
         if (prev !== next) {
+          version++;
           notify();
         }
 
@@ -110,6 +112,15 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
           ? part.g(getState)
           : originalGetState();
       }
+
+      /**
+       * Hidden method to get the version of state changes, to help with async selectors
+       * both be more efficient but also potentially avoid infinite render loops whe used
+       * with Suspense.
+       */
+      getState.v = function () {
+        return version;
+      };
 
       function notify() {
         batch(notifyListeners);

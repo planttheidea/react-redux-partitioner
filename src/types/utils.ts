@@ -1,9 +1,15 @@
 import { Dispatch } from 'redux';
 import { GetState } from './store';
 
-export type IsEqual<Value> = (a: Value, b: Value) => boolean;
+export type IsEqual = (a: any, b: any) => boolean;
 
 export type FunctionalUpdate<State> = (prev: State) => State;
+
+export type MaybePromise<Value> = Value | Promise<Value>;
+
+export type ResolvedValue<Value> = Value extends Promise<infer Result>
+  ? ResolvedValue<Result>
+  : Value;
 
 export type Thunk<State, Result> = (
   dispatch: Dispatch,

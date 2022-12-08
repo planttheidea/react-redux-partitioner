@@ -9,7 +9,14 @@ import type {
   UPDATE_PART,
 } from '../flags';
 import type { GetState, PartAction } from './store';
-import type { FunctionalUpdate, IsEqual, Thunk, Tuple } from './utils';
+import type {
+  FunctionalUpdate,
+  IsEqual,
+  MaybePromise,
+  ResolvedValue,
+  Thunk,
+  Tuple,
+} from './utils';
 
 export type PartId = number;
 
@@ -34,6 +41,7 @@ export type CombinedPartsState<Parts extends Tuple<AnyStatefulPart>> =
 export type AnyPartsState = CombinedPartsState<AnyStatefulPart[]>;
 
 export type Get<State> = (getState: GetState) => State;
+export type GetSelector<State> = (getState: GetState) => MaybePromise<State>;
 export type Set<State> = (
   dispatch: Dispatch,
   getState: GetState<State>,
@@ -123,7 +131,7 @@ export type StatefulPart<
 export type PartState<Part> = Part extends AnyStatefulPart
   ? Part['i']
   : Part extends AnySelectablePart
-  ? ReturnType<Part['g']>
+  ? ResolvedValue<ReturnType<Part['g']>>
   : undefined;
 
 type MergeSelectPartArgs<
@@ -144,14 +152,14 @@ export interface BoundSelectPartConfig<
   Selector extends AnySelector<Parts>
 > extends BasePartConfig {
   get: Selector;
-  isEqual?: IsEqual<ReturnType<Selector>>;
+  isEqual?: IsEqual;
   parts: Parts;
 }
 
 export interface UnboundSelectPartConfig<Selector extends AnyGenericSelector>
   extends BasePartConfig {
   get: Selector;
-  isEqual?: IsEqual<ReturnType<Selector>>;
+  isEqual?: IsEqual;
   parts?: never;
 }
 
@@ -177,9 +185,9 @@ export interface BoundSelectPart<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>
 > extends BaseSelectPart {
-  (getState: GetState): ReturnType<Selector>;
+  (getState: GetState): MaybePromise<ReturnType<Selector>>;
 
-  g: Get<ReturnType<Selector>>;
+  g: GetSelector<ReturnType<Selector>>;
 }
 
 export type AnyUpdater = (
@@ -251,7 +259,7 @@ export interface BoundProxyPartConfig<
   Updater extends AnyUpdater
 > extends BasePartConfig {
   get: Selector;
-  isEqual?: IsEqual<ReturnType<Selector>>;
+  isEqual?: IsEqual;
   parts: Parts;
   set: Updater;
 }
@@ -261,7 +269,7 @@ export interface UnboundProxyPartConfig<
   Updater extends AnyUpdater
 > extends BasePartConfig {
   get: Selector;
-  isEqual?: IsEqual<ReturnType<Selector>>;
+  isEqual?: IsEqual;
   part?: never;
   set: Updater;
 }
@@ -271,20 +279,20 @@ export interface BaseProxyPart extends BasePart {
   f: typeof PROXY_PART;
 }
 
-export interface UnboundProxyPart<
-  Selector extends AnyGenericSelector,
-  Updater extends AnyUpdater
-> extends BaseProxyPart {
-  select(getState: GetState): ReturnType<Selector>;
-  update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
-
-  g: Get<ReturnType<Selector>>;
-  s: Updater;
-}
-
 export interface BoundProxyPart<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>,
+  Updater extends AnyUpdater
+> extends BaseProxyPart {
+  select(getState: GetState): MaybePromise<ReturnType<Selector>>;
+  update(...args: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
+
+  g: GetSelector<ReturnType<Selector>>;
+  s: Updater;
+}
+
+export interface UnboundProxyPart<
+  Selector extends AnyGenericSelector,
   Updater extends AnyUpdater
 > extends BaseProxyPart {
   select(getState: GetState): ReturnType<Selector>;

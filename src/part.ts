@@ -50,6 +50,7 @@ import type {
   FunctionalUpdate,
   GetState,
   IsEqual,
+  MaybePromise,
   PartAction,
   PrimitivePart,
   PrimitivePartConfig,
@@ -64,16 +65,30 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
+import { createSuspensePromise } from './suspensePromise';
 
 function createBoundSelector<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>
->(parts: Parts, get: Selector, isEqual: IsEqual<ReturnType<Selector>>) {
-  let values: SelectPartArgs<Parts>;
-  let result: ReturnType<Selector>;
+>(parts: Parts, get: Selector, isEqual: IsEqual) {
+  type Values = SelectPartArgs<Parts>;
+  type Result = MaybePromise<ReturnType<Selector>>;
 
-  return function select(getState: GetState): ReturnType<Selector> {
-    const nextValues = [] as SelectPartArgs<Parts>;
+  let values: Values;
+  let result: Result;
+  let stateVersion: number;
+
+  return function select(getState: GetState): Result {
+    // @ts-expect-error - v is a hidden method to check the version of state.
+    const nextVersion = getState.v();
+
+    if (nextVersion === stateVersion) {
+      return result;
+    }
+
+    stateVersion = nextVersion;
+
+    const nextValues = [] as Values;
 
     let hasChanged = !values;
     let hasPromise = false;
@@ -88,14 +103,22 @@ function createBoundSelector<
     if (hasChanged) {
       values = nextValues;
 
-      const nextResult = hasPromise
-        ? Promise.all(nextValues).then((resolvedValues) =>
-            get(...(resolvedValues as SelectPartArgs<Parts>))
-          )
-        : get(...nextValues);
+      if (hasPromise) {
+        const nextResult: Promise<ReturnType<Selector>> = Promise.all(
+          nextValues
+        ).then((resolvedValues) => get(...(resolvedValues as Values)));
 
-      if (!isEqual(result, nextResult)) {
-        result = nextResult;
+        result = createSuspensePromise(nextResult);
+      } else {
+        let nextResult = get(...nextValues);
+
+        if (isPromise(nextResult)) {
+          nextResult = createSuspensePromise(nextResult);
+        }
+
+        if (!isEqual(result, nextResult)) {
+          result = nextResult;
+        }
       }
     }
 
@@ -130,15 +153,27 @@ function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
 
 function createUnboundSelector<Selector extends AnyGenericSelector>(
   get: Selector,
-  isEqual: IsEqual<ReturnType<Selector>>
+  isEqual: IsEqual
 ) {
   let result: ReturnType<Selector>;
+  let stateVersion: number;
 
   return function select(getState: GetState): ReturnType<Selector> {
+    // @ts-expect-error - v is a hidden method to check the version of state.
+    const nextVersion = getState.v();
+
+    if (nextVersion === stateVersion) {
+      return result;
+    }
+
+    stateVersion = nextVersion;
+
     const nextResult = get(getState);
 
     if (!isEqual(result, nextResult)) {
-      result = nextResult;
+      result = isPromise(nextResult)
+        ? createSuspensePromise(nextResult)
+        : nextResult;
     }
 
     return result;

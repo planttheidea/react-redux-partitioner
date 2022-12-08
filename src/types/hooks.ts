@@ -5,6 +5,7 @@ import type {
   AnyUpdater,
   UpdatePartArgs,
 } from './part';
+import { ResolvedValue } from './utils';
 
 export type UseUpdateUpdater<Updater extends AnyUpdater> = (
   ...args: UpdatePartArgs<Updater>
@@ -16,7 +17,7 @@ export type UsePartPair<Part extends AnyPart> = [
 ];
 
 export type UsePartValue<Part extends AnyPart> = Part extends AnySelectablePart
-  ? ReturnType<Part['g']>
+  ? ResolvedValue<ReturnType<Part['g']>>
   : never;
 
 export type UsePartUpdate<Part extends AnyPart> = Part extends AnyUpdateablePart

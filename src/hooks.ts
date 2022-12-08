@@ -2,7 +2,7 @@ import { useCallback, useContext, useMemo } from 'react';
 import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { is, noop } from './utils';
-import { isSelectablePart, isUpdateablePart } from './validate';
+import { isPromise, isSelectablePart, isUpdateablePart } from './validate';
 
 import type {
   AnyPart,
@@ -14,6 +14,7 @@ import type {
   Store,
   UpdatePartArgs,
 } from './types';
+import { getSuspensePromiseCacheEntry } from './suspensePromise';
 
 export function usePart<Part extends AnyPart>(part: Part): UsePartPair<Part> {
   return [usePartValue(part), usePartUpdate(part)];
@@ -57,11 +58,38 @@ export function usePartValue<Part extends AnyPart>(
     [store, part]
   );
 
-  return useSyncExternalStoreWithSelector(
+  const result: UsePartValue<Part> = useSyncExternalStoreWithSelector(
     subscribe,
     store.getState,
     getServerState || store.getState,
     getSnapshot,
     is
   );
+
+  if (!isPromise(result)) {
+    return result;
+  }
+
+  const entry = getSuspensePromiseCacheEntry<UsePartValue<Part>>(result);
+
+  if (!entry) {
+    return result;
+  }
+
+  switch (entry.s) {
+    case 'pending':
+      throw entry.p;
+
+    case 'resolved':
+      return entry.r;
+
+    case 'rejected':
+      throw entry.e;
+
+    case 'canceled':
+      return entry.r;
+
+    default:
+      return result as UsePartValue<Part>;
+  }
 }
