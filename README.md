@@ -5,17 +5,18 @@ A more pleasant and performant development Redux state manager.
 - [redux-partitioner](#redux-partitioner)
   - [Premise](#premise)
   - [Setup](#setup)
-  - [Usage](#usage)
-    - [Hooks](#hooks)
-      - [`usePart`](#usepart)
-      - [`usePartValue`](#usepartvalue)
-      - [`usePartUpdate`](#usepartupdate)
-    - [Part types](#part-types)
-      - [Stateful Parts](#stateful-parts)
-        - [Stateful Update Parts](#stateful-update-parts)
-      - [Select Parts](#select-parts)
-      - [Update Parts](#update-parts)
-      - [Proxy Parts](#proxy-parts)
+  - [Usage example](#usage-example)
+  - [Hooks](#hooks)
+    - [`usePart`](#usepart)
+    - [`usePartValue`](#usepartvalue)
+    - [`usePartUpdate`](#usepartupdate)
+  - [Part types](#part-types)
+    - [Stateful Parts](#stateful-parts)
+      - [Stateful Update Parts](#stateful-update-parts)
+    - [Select Parts](#select-parts)
+      - [Async selectors](#async-selectors)
+    - [Update Parts](#update-parts)
+    - [Proxy Parts](#proxy-parts)
   - [Store enhancements](#store-enhancements)
     - [`getState`](#getstate)
     - [`subscribeToPart`](#subscribetopart)
@@ -59,7 +60,7 @@ const store = configureStore({ reducer, enhancers: [enhancer] });
 
 The enhancer will provide some extra goodies on the `store` object which are detailed in [Store enhancements](#store-enhancements), but will also set up the targeted update infrastructure for components.
 
-## Usage
+## Usage example
 
 ```tsx
 import { usePart } from 'redux-partitioner';
@@ -110,9 +111,9 @@ function TodoList() {
 }
 ```
 
-### Hooks
+## Hooks
 
-#### `usePart`
+### `usePart`
 
 Returns a `useState`-like tuple where the first item is the value of the Part, and the second is the update method for the Part.
 
@@ -122,7 +123,7 @@ const [todos, setTodos] = usePart(todosPart);
 
 Please note that when using [Select Parts](#select-parts) or [Update Parts](#update-parts), only the items associated with those parts will be available. This means that for Select parts the update method will be a no-op, and for Update parts the value will be `undefined`.
 
-#### `usePartValue`
+### `usePartValue`
 
 Returns the value of the Part only. This is a convenience hook for when updates are not needed.
 
@@ -132,7 +133,7 @@ const todos = usePartValue(todosPart);
 
 Please note that when using [Update Parts](#update-parts) this will return `undefined`.
 
-#### `usePartUpdate`
+### `usePartUpdate`
 
 Returns the update method of the Part only. This is a convenience hook for when reading the values are not needed, and is considered a performance benefit because changes to the Part state will not cause additional rerenders as it would when using `usePart`.
 
@@ -142,9 +143,9 @@ const setTodos = usePartUpdate(todosPart);
 
 Please note that when using [Select Parts](#select-parts) this will return a no-op method.
 
-### Part types
+## Part types
 
-#### Stateful Parts
+### Stateful Parts
 
 The most important Parts in your application! These are the values stored in Redux state, and the core driver of rendering changes.
 
@@ -180,7 +181,7 @@ This can come in handy when used in combination with other third-party libraries
 yield takeLatest(idPart);
 ```
 
-##### Stateful Update Parts
+#### Stateful Update Parts
 
 In addition to the [Update Parts](#update-parts) that you can create manually, stateful components can create custom Update Parts for updating their values. This allows you to build action creators that are more flexible and declarative, or contain some business logic.
 
@@ -222,7 +223,7 @@ const modifyUser = userPart.update(
 );
 ```
 
-#### Select Parts
+### Select Parts
 
 Often an application leverages derived data, which is not stored persistently in state but is used for rendering data that combines or transforms that which is stored in state. For this, a select Part can be used:
 
@@ -253,9 +254,48 @@ const selectPriorityTodos = part((todos) =>
 );
 ```
 
-This if mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
-#### Update Parts
+#### Async selectors
+
+Because applications often rely on asynchronous data, having a convenient mechanism to handle this asynchronous data can be helpful when rendering. As such, when the result of a selector, or any dependency for that selector, is async, a `Promise` will be returned from the selector.
+
+```ts
+const selectTodos = usePart([idPart], async (getState) => {
+  const id = getState(idPart);
+  const response = await fetch(`https://my.url.com/${id}`);
+
+  const todos: Todo[] = await response.json();
+
+  return todos;
+});
+const selectPriorityTodos = part([selectTodos], (todos) =>
+  todos.filter((todo) => todo.value.endsWith('(P)'))
+);
+```
+
+This `Promise` result supports `React.Suspense` handling use when used with `usePart`.
+
+```tsx
+function Todos() {
+  const todos = usePartValue(selectTodos);
+  const priorityTodos = usePartValue(selectPriorityTodos);
+  const [onlyPriority, setOnlyPriority] = useState(false);
+
+  const todosListed = onlyPriority ? priorityTodos : todos;
+  ...
+}
+
+function App() {
+  return (
+    <Suspense fallback={<div>Loading todos...</div>}>
+      <Todos />
+    </Suspense>
+  );
+}
+```
+
+### Update Parts
 
 Sometimes there is complex logic required for performing updates to multiple Parts of state that are unrelated. In these cases, an Update Part can be created.
 
@@ -293,7 +333,7 @@ Notice that `null` is passed to `part` as the first parameter; this identifies t
 store.dispatch(resetApp());
 ```
 
-#### Proxy Parts
+### Proxy Parts
 
 Combining the power of Select and Update Parts, Proxy Parts allow full manipulation of state without separate storage.
 
@@ -337,7 +377,7 @@ const proxyName = part(
 );
 ```
 
-This if mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
 ## Store enhancements
 
