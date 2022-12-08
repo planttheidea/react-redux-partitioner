@@ -29,6 +29,7 @@ import {
   isStatefulPart,
   isSelectPart,
   isProxyPart,
+  isPromise,
 } from './validate';
 
 import type { AnyAction, Dispatch, Reducer } from 'redux';
@@ -75,17 +76,23 @@ function createBoundSelector<
     const nextValues = [] as SelectPartArgs<Parts>;
 
     let hasChanged = !values;
+    let hasPromise = false;
 
     for (let index = 0; index < parts.length; ++index) {
       nextValues[index] = parts[index].g(getState);
 
       hasChanged = hasChanged || !is(values[index], nextValues[index]);
+      hasPromise = hasPromise || isPromise(nextValues[index]);
     }
 
-    values = nextValues;
-
     if (hasChanged) {
-      const nextResult = get(...nextValues);
+      values = nextValues;
+
+      const nextResult = hasPromise
+        ? Promise.all(nextValues).then((resolvedValues) =>
+            get(...(resolvedValues as SelectPartArgs<Parts>))
+          )
+        : get(...nextValues);
 
       if (!isEqual(result, nextResult)) {
         result = nextResult;

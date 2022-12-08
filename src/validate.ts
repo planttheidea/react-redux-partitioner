@@ -85,6 +85,10 @@ export function isPrimitiveConfig(
   return typeof value === 'object' && value !== null && 'initialState' in value;
 }
 
+export function isPromise(value: any): value is Promise<unknown> {
+  return !!value && typeof value.then === 'function';
+}
+
 export function isProxyPart(value: any): value is AnyProxyPart {
   return !!(value && value.f & PROXY_PART);
 }
