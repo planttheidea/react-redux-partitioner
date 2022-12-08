@@ -28,7 +28,7 @@ export default {
   },
 
   output: {
-    filename: 'redux-partitioner.js',
+    filename: 'react-redux-partitioner.js',
     library: 'Style',
     libraryTarget: 'umd',
     path: path.resolve(ROOT, 'dist'),

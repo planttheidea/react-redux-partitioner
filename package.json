@@ -1,8 +1,8 @@
 {
   "author": "planttheidea",
-  "browser": "dist/redux-partitioner.umd.js",
+  "browser": "dist/react-redux-partitioner.umd.js",
   "bugs": {
-    "url": "https://github.com/planttheidea/redux-partitioner/issues"
+    "url": "https://github.com/planttheidea/react-redux-partitioner/issues"
   },
   "dependencies": {
     "react": ">=16.8.0",
@@ -57,17 +57,17 @@
       }
     }
   },
-  "homepage": "https://github.com/planttheidea/redux-partitioner#readme",
+  "homepage": "https://github.com/planttheidea/react-redux-partitioner#readme",
   "keywords": [
     "state"
   ],
   "license": "MIT",
-  "main": "dist/redux-partitioner.cjs.js",
-  "module": "dist/redux-partitioner.esm.js",
-  "name": "redux-partitioner",
+  "main": "dist/react-redux-partitioner.cjs.js",
+  "module": "dist/react-redux-partitioner.esm.js",
+  "name": "react-redux-partitioner",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/planttheidea/redux-partitioner.git"
+    "url": "git+https://github.com/planttheidea/react-redux-partitioner.git"
   },
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs && npm run build:umd && npm run build:min",

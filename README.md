@@ -1,8 +1,8 @@
-# redux-partitioner
+# react-redux-partitioner
 
-A more pleasant and performant development Redux state manager.
+A more pleasant and performant manager of Redux state for React apps.
 
-- [redux-partitioner](#redux-partitioner)
+- [react-redux-partitioner](#react-redux-partitioner)
   - [Premise](#premise)
   - [Setup](#setup)
   - [Usage example](#usage-example)
@@ -28,13 +28,13 @@ A more pleasant and performant development Redux state manager.
 
 Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state, and the convention that aligns with the React `useState` convention is familiar and approachable.
 
-`redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Updates only occur for parts of state that change, avoiding excess work and staying performant at scale. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures.
+`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Updates only occur for parts of state that change, avoiding excess work and staying performant at scale. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures.
 
 ## Setup
 
 ```tsx
 // create the parts of state involved
-import { part } from 'redux-partitioner';
+import { part } from 'react-redux-partitioner';
 
 export const titlePart = part('title', 'My todos');
 export const descriptionPart = part('description', 'A simple list of todos');
@@ -46,7 +46,7 @@ interface Todo {
 export const todosPart = part('todos', [] as Todo[]);
 
 // create the reducer and store enhancer from these parts
-import { createPartitioner, createReducer } from 'redux-partitioner';
+import { createPartitioner, createReducer } from 'react-redux-partitioner';
 
 const parts = [titlePart, descriptionPart, todosPart] as const;
 const reducer = createReducer(parts);
@@ -63,7 +63,7 @@ The enhancer will provide some extra goodies on the `store` object which are det
 ## Usage example
 
 ```tsx
-import { usePart } from 'redux-partitioner';
+import { usePart } from 'react-redux-partitioner';
 import { descriptionPart, titlePart, todosPart } from './store';
 
 function Title() {
@@ -254,7 +254,7 @@ const selectPriorityTodos = part((todos) =>
 );
 ```
 
-This is mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is mainly helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
 #### Async selectors
 
@@ -377,7 +377,7 @@ const proxyName = part(
 );
 ```
 
-This is mainly helpful when `redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is mainly helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
 
 ## Store enhancements
 
@@ -405,7 +405,7 @@ A common use-case in Redux is to batch notification of subscribers to reduce the
 
 ```ts
 import debounce from 'lodash/debounce';
-import { createPartitioner } from 'redux-partitioner';
+import { createPartitioner } from 'react-redux-partitioner';
 import parts from './parts';
 
 const debouncedNotify = debounce((notify) => notify(), 0);
