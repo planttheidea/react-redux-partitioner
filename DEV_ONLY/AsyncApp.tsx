@@ -42,16 +42,6 @@ const postPart = part('post', [postIdPart, postUserPart]);
 
 // const postData = part(async (get) => {
 //   const id = get(postIdPart);
-//   const response = await fetch(
-//     `https://hacker-news.firebaseio.com/v0/item/${id}.json`
-//   );
-
-//   await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//   const data: PostData = await response.json();
-
-//   return data;
-// });
 const postData = part([postIdPart], async (id) => {
   const response = await fetch(
     `https://hacker-news.firebaseio.com/v0/item/${id}.json`

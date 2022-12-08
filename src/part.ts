@@ -100,9 +100,9 @@ function createBoundSelector<
       hasPromise = hasPromise || isPromise(nextValues[index]);
     }
 
-    if (hasChanged) {
-      values = nextValues;
+    values = nextValues;
 
+    if (hasChanged) {
       if (hasPromise) {
         const nextResult: Promise<ReturnType<Selector>> = Promise.all(
           nextValues
