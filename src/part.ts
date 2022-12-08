@@ -65,7 +65,18 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
-import { createSuspensePromise } from './suspensePromise';
+import {
+  getSuspensePromise,
+  getSuspensePromiseCacheEntry,
+} from './suspensePromise';
+
+function cancelRunningSuspensePromise(promise: Promise<unknown>): void {
+  const entry = isPromise(promise) && getSuspensePromiseCacheEntry(promise);
+
+  if (entry) {
+    entry.c();
+  }
+}
 
 function createBoundSelector<
   Parts extends Tuple<AnySelectablePart>,
@@ -103,17 +114,19 @@ function createBoundSelector<
     values = nextValues;
 
     if (hasChanged) {
+      cancelRunningSuspensePromise(result);
+
       if (hasPromise) {
         const nextResult: Promise<ReturnType<Selector>> = Promise.all(
           nextValues
         ).then((resolvedValues) => get(...(resolvedValues as Values)));
 
-        result = createSuspensePromise(nextResult);
+        result = getSuspensePromise(nextResult);
       } else {
         let nextResult = get(...nextValues);
 
         if (isPromise(nextResult)) {
-          nextResult = createSuspensePromise(nextResult);
+          nextResult = getSuspensePromise(nextResult);
         }
 
         if (!isEqual(result, nextResult)) {
@@ -171,8 +184,10 @@ function createUnboundSelector<Selector extends AnyGenericSelector>(
     const nextResult = get(getState);
 
     if (!isEqual(result, nextResult)) {
+      cancelRunningSuspensePromise(result);
+
       result = isPromise(nextResult)
-        ? createSuspensePromise(nextResult)
+        ? getSuspensePromise(nextResult)
         : nextResult;
     }
 
