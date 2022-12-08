@@ -82,7 +82,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
 
           if (!part) {
             throw new Error(
-              `Part with id ${id} not found. Is it part of this store?`
+              `Part with id ${id} not found. Is it included in this store?`
             );
           }
 
@@ -163,7 +163,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       function subscribe(listener: Listener): Unsubscribe {
         if (typeof listener !== 'function') {
           throw new Error(
-            `Expected the listener to be a function. Instead, received: '${typeof listener}'`
+            `Expected the listener to be a function; received '${typeof listener}'`
           );
         }
 
@@ -183,7 +183,7 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
       function subscribeToPart(part: AnySelectablePart, listener: Listener) {
         if (typeof listener !== 'function') {
           throw new Error(
-            `Expected the listener to be a function. Instead, received: '${typeof listener}'`
+            `Expected the listener to be a function; received '${typeof listener}'`
           );
         }
 

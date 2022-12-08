@@ -604,12 +604,15 @@ export function part<
   second?: State | Parts | Selector | Updater,
   third?: Updater
 ) {
-  if (first === null) {
+  if (first == null) {
     if (isUpdater(second)) {
       return createUpdatePart({ set: second });
     }
 
-    throw new Error('Invalid update options provided');
+    throw new Error(
+      'You provided a nullish first argument which would create an Update Part, but provided an invalid updater ' +
+        `as the second argument. A function was expected; received ${typeof second}.`
+    );
   }
 
   if (typeof first === 'string') {
@@ -633,7 +636,10 @@ export function part<
         : createBoundSelectPart({ get: second, parts: first });
     }
 
-    throw new Error('Invalid select options provided');
+    throw new Error(
+      'You provided a list of Parts as the first argument, which would create a Select Part, but provided ' +
+        `an invalid selector as the second argument. A function was expected; received ${typeof second}.`
+    );
   }
 
   if (isPrimitiveConfig(first)) {
@@ -670,5 +676,10 @@ export function part<
       : createUnboundSelectPart({ get: first });
   }
 
-  throw new Error('Invalid config provided');
+  throw new Error(
+    `The parameters passed are invalid for creating a Part; received [${Array.from(
+      arguments,
+      (parameter) => typeof parameter
+    )}]`
+  );
 }
