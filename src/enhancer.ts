@@ -1,4 +1,4 @@
-import { isComposedPart, isPartAction, isSelectablePart } from './validate';
+import { isPartAction, isSelectablePart } from './validate';
 
 import type {
   PreloadedState,
@@ -9,8 +9,8 @@ import type {
 import type {
   AnySelectPart,
   AnyStatefulPart,
+  EnhancerOptions,
   Listener,
-  Notifier,
   Notify,
   PartState,
   CombinedPartsState,
@@ -22,11 +22,9 @@ import type {
 import { getStatefulPartMap, noop, updateUniqueList } from './utils';
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
 
-const EMPTY_LISTENERS: [Listener[] | null, Listener[]] = [[], []];
-
 export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
   parts: Parts,
-  notifier: Notifier = (notify) => notify()
+  { notifier = (notify) => notify() }: EnhancerOptions = {}
 ): StoreEnhancer<PartsStoreExtensions<CombinedPartsState<Parts>>> {
   type PartedState = CombinedPartsState<Parts>;
   type PartedExtensions = PartsStoreExtensions<PartedState>;

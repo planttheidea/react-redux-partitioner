@@ -1,3 +1,4 @@
+export * from './enhancer';
 export * from './hooks';
 export * from './part';
 export * from './store';

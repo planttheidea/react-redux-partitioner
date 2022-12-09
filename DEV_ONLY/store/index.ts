@@ -64,7 +64,7 @@ type StoreState = ReturnType<typeof reducer>;
 
 const reduxStoreEnhancer = composeEnhancers(
   applyMiddleware(logger),
-  createPartitioner(storeParts, debouncedNotify)
+  createPartitioner(storeParts, { notifier: debouncedNotify })
 );
 
 export const store = createStore<
@@ -77,5 +77,5 @@ export const store = createStore<
 export const storeConfigured = configureStore({
   reducer,
   middleware: (getDefaultMiddleware) => [logger, ...getDefaultMiddleware()],
-  enhancers: [createPartitioner(storeParts, debouncedNotify)],
+  enhancers: [createPartitioner(storeParts, { notifier: debouncedNotify })],
 });
