@@ -17,9 +17,6 @@ import {
   UsePartUpdate,
   usePartUpdate,
   usePartValue,
-  withParts,
-  withPartUpdates,
-  withPartValues,
 } from '../src';
 import {
   activateUpdate,
@@ -183,28 +180,9 @@ function Toggle() {
   );
 }
 
-// function User() {
-//   const [user] = usePart(userProxy);
+function User() {
+  const [user, setUser] = usePart(userProxy);
 
-//   console.count('user');
-
-//   return (
-//     <div>
-//       <h2>User: {user}</h2>
-
-//       <UserId />
-//       <UserName />
-//     </div>
-//   );
-// }
-
-interface UserProps {
-  user: UsePartPair<typeof userProxy>;
-}
-
-const User = withParts({ user: userProxy })(function User({
-  user: [user, setUser],
-}: UserProps) {
   console.count('user');
 
   const alsoUser = usePartValue(userProxySelect);
@@ -221,35 +199,12 @@ const User = withParts({ user: userProxy })(function User({
       <UserName />
     </div>
   );
-});
-
-// function UserId() {
-//   const id = usePartValue(idPart);
-//   const updateLastName = usePartUpdate(lastNamePart);
-//   const updateId = usePartUpdate(newUserUpdate);
-
-//   useAfterTimeout(() => updateId('lskdjgfslkjghslkfg'), 500);
-//   useAfterTimeout(() => updateLastName(`O'Testerson`), 1500);
-
-//   console.count('user id');
-
-//   return <div>Id: {id}</div>;
-// }
-
-interface UserIdProps {
-  testBadUpdate: UsePartUpdate<typeof fullNameSelect>;
-  updateLastName: UsePartUpdate<typeof lastNamePart>;
-  updateId: UsePartUpdate<typeof idPart>;
 }
 
-const UserId = withPartUpdates({
-  testBadUpdate: fullNameSelect,
-  updateLastName: lastNamePart,
-  updateId: newUserUpdate,
-})(function UserId({ testBadUpdate, updateLastName, updateId }: UserIdProps) {
-  console.log(testBadUpdate);
-
+function UserId() {
   const id = usePartValue(idPart);
+  const updateLastName = usePartUpdate(lastNamePart);
+  const updateId = usePartUpdate(newUserUpdate);
 
   useAfterTimeout(() => updateId('lskdjgfslkjghslkfg'), 500);
   useAfterTimeout(() => updateLastName(`O'Testerson`), 1500);
@@ -257,30 +212,12 @@ const UserId = withPartUpdates({
   console.count('user id');
 
   return <div>Id: {id}</div>;
-});
-
-// function UserName() {
-//   const firstName = usePartValue(firstNamePart);
-//   const lastName = usePartValue(lastNamePart);
-
-//   console.count('user name');
-
-//   return (
-//     <div>
-//       Name: {firstName} {lastName}
-//     </div>
-//   );
-// }
-
-interface UserNameProps {
-  first: UsePartPair<typeof firstNamePart>;
-  last: UsePartPair<typeof lastNamePart>;
 }
 
-const UserName = withParts({
-  first: firstNamePart,
-  last: lastNamePart,
-})(function UserName({ first: [firstName], last: [lastName] }: UserNameProps) {
+function UserName() {
+  const firstName = usePartValue(firstNamePart);
+  const lastName = usePartValue(lastNamePart);
+
   console.count('user name');
 
   return (
@@ -288,7 +225,7 @@ const UserName = withParts({
       User name: {firstName} {lastName}
     </div>
   );
-});
+}
 
 function UserNameStoreSelector() {
   const [fullName, setFullName] = usePart(fullNameProxy);
