@@ -12,6 +12,23 @@ import type {
 } from 'redux';
 import type { AnyStatefulPart, CombinedPartsState } from './types';
 
+export function getInitialState<Parts extends readonly AnyStatefulPart[]>(
+  parts: Parts
+) {
+  type State = CombinedPartsState<Parts>;
+
+  const initialState = {} as State;
+
+  for (let index = 0; index < parts.length; ++index) {
+    const part = parts[index];
+    const key = part.n as keyof State;
+
+    initialState[key] = part.i;
+  }
+
+  return initialState;
+}
+
 export function isReducersMap(
   value: any
 ): value is ReducersMapObject<any, any> {
@@ -86,14 +103,9 @@ export function createPartsReducer<
   type State = CombinedPartsState<Parts>;
 
   const partMap = getStatefulPartMap(parts);
-  const initialState = parts.reduce<State>((initialState, part) => {
-    initialState[part.n as keyof State] = part.i;
-
-    return initialState;
-  }, {} as State);
 
   return function partsReducer(
-    state: State = initialState,
+    state: State = getInitialState(parts),
     action: DispatchedAction
   ): State {
     if (!isPartAction(action)) {
