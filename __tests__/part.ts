@@ -1,85 +1,121 @@
+import { configureStore } from '@reduxjs/toolkit';
 import { type Dispatch } from 'redux';
 import {
-  type AnyPart,
   type AnyStatefulPart,
   type GetState,
   part,
+  createPartitioner,
+  createReducer,
 } from '../src';
-import { PRIMITIVE_PART } from '../src/flags';
 
-function createMockGetState(part: AnyStatefulPart, stateValue = part.i) {
-  const path = part.p;
-  const mockState: Record<string, any> = {};
-
-  let buildState = mockState;
-
-  path.forEach((pathItem, index) => {
-    buildState = buildState[pathItem] =
-      index === path.length - 1 ? stateValue : {};
+function createStore<Parts extends readonly AnyStatefulPart[]>(parts: Parts) {
+  return configureStore({
+    reducer: createReducer(parts),
+    enhancers: [createPartitioner(parts)],
   });
-
-  return function getState() {
-    return mockState;
-  } as GetState;
 }
-
-const mockDispatch = function mockDispatch(action: any) {
-  return action;
-} as Dispatch;
 
 describe('part', () => {
   describe('Primitive', () => {
-    it('should create the primitive part with the correct shape', () => {
-      const result = part('primitive', 'value');
-
-      expect(result.c).toEqual([]);
-      expect(result.d).toEqual([]);
-      expect(result.f).toBe(PRIMITIVE_PART);
-      expect(result.g).toBeInstanceOf(Function);
-      expect(result.i).toBe('value');
-      expect(result.n).toBe('primitive');
-      expect(result.o).toBe('primitive');
-      expect(result.r).toBeInstanceOf(Function);
-      expect(result.s).toBeInstanceOf(Function);
-    });
-
     it('should be an action creator for the part', () => {
-      const result = part('primitive', 'value');
+      const primitivePart = part('primitive', 'value');
 
-      expect(result('next value')).toEqual({
-        $$part: result.id,
+      expect(primitivePart('next value')).toEqual({
+        $$part: primitivePart.id,
         type: 'UPDATE_PRIMITIVE',
         value: 'next value',
       });
     });
 
     it('should get the correct value from state', () => {
-      const result = part('primitive', 'value');
-      const getState = createMockGetState(result);
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
 
-      expect(result.g(getState)).toBe('value');
-    });
-
-    it('should return the correct initial state when no state exists', () => {
-      const result = part('primitive', 'value');
-
-      expect(result.r(undefined, {})).toBe('value');
+      expect(store.getState(primitivePart)).toBe('value');
     });
 
     it('should derive the correct next state based on the action', () => {
-      const result = part('primitive', 'value');
-      const action = result('next value');
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
 
-      expect(result.r(result.i, action)).toBe('next value');
+      store.dispatch(primitivePart('next value'));
+
+      expect(store.getState(primitivePart)).toBe('next value');
+    });
+  });
+
+  describe('Composed', () => {
+    it('should be an action creator for the part', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+
+      expect(composedPart({ primitive: 'next value' })).toEqual({
+        $$part: composedPart.id,
+        type: 'UPDATE_COMPOSED',
+        value: { primitive: 'next value' },
+      });
     });
 
-    it('should create the action to set the next value in state', () => {
-      const result = part('primitive', 'value');
-      const getState = createMockGetState(result);
+    it('should get the correct value from state', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+      const store = createStore([composedPart] as const);
 
-      expect(result.s(mockDispatch, getState, 'next value')).toEqual(
-        result('next value')
-      );
+      expect(store.getState(composedPart)).toEqual({ primitive: 'value' });
+    });
+
+    it('should get the correct value from state of a chile primitive', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+      const store = createStore([composedPart] as const);
+
+      expect(store.getState(primitivePart)).toEqual('value');
+    });
+
+    it('should derive the correct next state based on the action', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+      const store = createStore([composedPart] as const);
+
+      store.dispatch(composedPart({ primitive: 'next value' }));
+
+      expect(store.getState(composedPart)).toEqual({ primitive: 'next value' });
+    });
+
+    it('should derive the correct next state based on the action of a child primitive', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+      const store = createStore([composedPart] as const);
+
+      store.dispatch(primitivePart('next value'));
+
+      expect(store.getState(composedPart)).toEqual({ primitive: 'next value' });
+    });
+
+    it('should handle multiple levels of composition', () => {
+      const aPart = part('a', 'value');
+      const bPart = part('b', [aPart]);
+      const cPart = part('c', [bPart]);
+      const dPart = part('d', [cPart]);
+      const ePart = part('e', [dPart]);
+      const fPart = part('f', [ePart]);
+      const store = createStore([fPart] as const);
+
+      store.dispatch(aPart('next value'));
+
+      expect(store.getState()).toEqual({
+        f: { e: { d: { c: { b: { a: 'next value' } } } } },
+      });
+      expect(store.getState(fPart)).toEqual({
+        e: { d: { c: { b: { a: 'next value' } } } },
+      });
+      expect(store.getState(ePart)).toEqual({
+        d: { c: { b: { a: 'next value' } } },
+      });
+      expect(store.getState(dPart)).toEqual({ c: { b: { a: 'next value' } } });
+      expect(store.getState(cPart)).toEqual({ b: { a: 'next value' } });
+      expect(store.getState(bPart)).toEqual({ a: 'next value' });
+      expect(store.getState(aPart)).toEqual('next value');
     });
   });
 });
