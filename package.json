@@ -21,6 +21,7 @@
     "@rollup/plugin-terser": "^0.1.0",
     "@rollup/plugin-typescript": "^10.0.1",
     "@types/eslint": "^8.4.10",
+    "@types/jest": "^29.2.4",
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.9",
     "@typescript-eslint/eslint-plugin": "^5.44.0",
@@ -82,6 +83,9 @@
     "lint": "NODE_ENV=test eslint src",
     "lint:fix": "NODE_ENV=test eslint src --fix",
     "start": "npm run dev",
+    "test": "NODE_ENV=test NODE_PATH=. jest",
+    "test:coverage": "npm test -- --coverage",
+    "test:watch": "npm test -- --watch",
     "typecheck": "tsc --noEmit --p build/tsconfig/base.json"
   },
   "type": "module",
