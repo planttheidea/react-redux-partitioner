@@ -1,8 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-import App from './AppSimple';
-// import App from './App';
+// import App from './AppSimple';
+import App from './App';
 // import App from './AsyncApp';
 // import App from './TodosApp';
 
