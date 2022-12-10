@@ -1,12 +1,9 @@
-export interface CacheEntry<Result> {
-  c: () => void;
-  e: Error | null;
-  p: Promise<Result>;
-  r: Result;
-  s: 'pending' | 'resolved' | 'rejected' | 'canceled';
-}
+import type { SuspensePromiseCacheEntry } from './types';
 
-const CACHE = new WeakMap<Promise<unknown>, CacheEntry<unknown>>();
+const CACHE = new WeakMap<
+  Promise<unknown>,
+  SuspensePromiseCacheEntry<unknown>
+>();
 
 export function cancelSuspensePromise(promise: Promise<unknown>): void {
   const cached = CACHE.get(promise);
@@ -19,7 +16,7 @@ export function cancelSuspensePromise(promise: Promise<unknown>): void {
 export function createSuspensePromise<Result>(
   promise: Promise<Result>
 ): Promise<Result> {
-  const entry: CacheEntry<Result> = {
+  const entry: SuspensePromiseCacheEntry<Result> = {
     c: undefined,
     e: null,
     p: undefined,
@@ -64,15 +61,17 @@ export function createSuspensePromise<Result>(
 export function getSuspensePromise<Result>(
   promise: Promise<Result>
 ): Result | Promise<Result> {
-  const cached = CACHE.get(promise) as CacheEntry<Result> | undefined;
+  const cached = CACHE.get(promise) as
+    | SuspensePromiseCacheEntry<Result>
+    | undefined;
 
   return cached ? cached.p : createSuspensePromise(promise);
 }
 
 export function getSuspensePromiseCacheEntry<Result>(
   promise: Promise<Result>
-): CacheEntry<Result> | undefined {
-  return CACHE.get(promise) as CacheEntry<Result>;
+): SuspensePromiseCacheEntry<Result> | undefined {
+  return CACHE.get(promise) as SuspensePromiseCacheEntry<Result>;
 }
 
 export function isSuspensePromiseCanceled<Result>(

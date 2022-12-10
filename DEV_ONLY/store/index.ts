@@ -8,7 +8,6 @@ import {
 } from 'redux';
 
 import {
-  createReducer,
   createPartitioner,
   type Store,
   type PartsStoreExtensions,
@@ -55,17 +54,18 @@ function debounce<Fn extends (notify: () => void) => void>(fn: Fn, ms = 0): Fn {
 }
 const debouncedNotify = debounce((notify) => notify(), 0);
 
-const reducer = createReducer(storeParts, { legacy });
+const { enhancer, reducer } = createPartitioner({
+  parts: storeParts,
+  notifier: debouncedNotify,
+  otherReducer: { legacy },
+});
 const composeEnhancers =
   // @ts-expect-error - Devtools not on window type
   window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
 type StoreState = ReturnType<typeof reducer>;
 
-const reduxStoreEnhancer = composeEnhancers(
-  applyMiddleware(logger),
-  createPartitioner(storeParts, { notifier: debouncedNotify })
-);
+const reduxStoreEnhancer = composeEnhancers(applyMiddleware(logger), enhancer);
 
 export const store = createStore<
   StoreState,
@@ -77,5 +77,5 @@ export const store = createStore<
 export const storeConfigured = configureStore({
   reducer,
   middleware: (getDefaultMiddleware) => [logger, ...getDefaultMiddleware()],
-  enhancers: [createPartitioner(storeParts, { notifier: debouncedNotify })],
+  enhancers: [enhancer],
 });

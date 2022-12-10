@@ -2,14 +2,13 @@ import { configureStore } from '@reduxjs/toolkit';
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 
-import { createPartitioner, createReducer, part, usePart } from '../src';
+import { createPartitioner, part, usePart } from '../src';
 
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);
 
 const parts = [composedPart] as const;
-const reducer = createReducer(parts);
-const enhancer = createPartitioner(parts);
+const { enhancer, reducer } = createPartitioner({ parts });
 
 const store = configureStore({ reducer, enhancers: [enhancer] });
 

@@ -1,13 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import React, { useCallback, useRef, useState } from 'react';
 import { Provider } from 'react-redux';
-import {
-  createPartitioner,
-  createReducer,
-  part,
-  usePart,
-  usePartValue,
-} from '../src';
+import { createPartitioner, part, usePart, usePartValue } from '../src';
 
 const titlePart = part('title', 'My todos list');
 const descriptionPart = part('description', 'A simple list of todos');
@@ -21,8 +15,7 @@ interface Todo {
 const todosPart = part('todos', [] as Todo[]);
 
 const parts = [titlePart, descriptionPart, todosPart] as const;
-const reducer = createReducer(parts);
-const enhancer = createPartitioner(parts);
+const { enhancer, reducer } = createPartitioner({ parts });
 
 export const store = configureStore({
   reducer,

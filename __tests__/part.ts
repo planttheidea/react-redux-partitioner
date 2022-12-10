@@ -1,17 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { type Dispatch } from 'redux';
-import {
-  type AnyStatefulPart,
-  type GetState,
-  part,
-  createPartitioner,
-  createReducer,
-} from '../src';
+import { type AnyStatefulPart, part, createPartitioner } from '../src';
 
 function createStore<Parts extends readonly AnyStatefulPart[]>(parts: Parts) {
+  const { enhancer, reducer } = createPartitioner({ parts });
+
   return configureStore({
-    reducer: createReducer(parts),
-    enhancers: [createPartitioner(parts)],
+    reducer,
+    enhancers: [enhancer],
   });
 }
 

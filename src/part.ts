@@ -7,6 +7,10 @@ import {
   UPDATE_PART,
 } from './flags';
 import {
+  getSuspensePromise,
+  getSuspensePromiseCacheEntry,
+} from './suspensePromise';
+import {
   getId,
   identity,
   is,
@@ -65,10 +69,6 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
-import {
-  getSuspensePromise,
-  getSuspensePromiseCacheEntry,
-} from './suspensePromise';
 
 function cancelRunningSuspensePromise(promise: Promise<unknown>): void {
   const entry = isPromise(promise) && getSuspensePromiseCacheEntry(promise);

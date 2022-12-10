@@ -1,4 +1,4 @@
-import type { AnyStatefulPart, PartId } from './types';
+import type { AnyStatefulPart, PartId, PartMap } from './types';
 
 function createIdGenerator() {
   const source = Math.random().toString(16);
@@ -28,7 +28,7 @@ function createIdGenerator() {
   let c = (h3 ^ h1) >>> 0;
   let d = (h4 ^ h1) >>> 0;
 
-  return function getId(): number {
+  return function getId(): PartId {
     a >>>= 0;
     b >>>= 0;
     c >>>= 0;
@@ -47,8 +47,8 @@ function createIdGenerator() {
   };
 }
 
-export function getStatefulPartMap(parts: readonly AnyStatefulPart[]) {
-  let partMap = {} as Record<number, AnyStatefulPart>;
+export function getStatefulPartMap(parts: readonly AnyStatefulPart[]): PartMap {
+  let partMap = {} as PartMap;
 
   parts.forEach((part) => {
     partMap[part.id] = part;
@@ -84,7 +84,7 @@ export function toScreamingSnakeCase(string: string): string {
     .toUpperCase();
 }
 
-export function updateUniqueList(list: any[], item: any) {
+export function updateUniqueList(list: any[], item: any): void {
   if (!~list.indexOf(item)) {
     list.push(item);
   }

@@ -1,42 +1,34 @@
+import { IGNORE_ALL_DEPENDENCIES } from './constants';
+import { noop, updateUniqueList } from './utils';
 import { isPartAction, isSelectablePart } from './validate';
 
-import type {
-  PreloadedState,
-  Reducer,
-  StoreEnhancer,
-  StoreEnhancerStoreCreator,
-} from 'redux';
+import type { PreloadedState, Reducer } from 'redux';
 import type {
   AnySelectPart,
+  AnySelectablePart,
   AnyStatefulPart,
-  EnhancerOptions,
+  CombinedPartsState,
+  Enhancer,
+  EnhancerConfig,
+  EnhancerStoreCreator,
   Listener,
   Notify,
-  PartState,
-  CombinedPartsState,
-  PartsStoreExtensions,
-  Unsubscribe,
-  AnySelectablePart,
   PartId,
+  PartState,
+  Unsubscribe,
 } from './types';
-import { getStatefulPartMap, noop, updateUniqueList } from './utils';
-import { IGNORE_ALL_DEPENDENCIES } from './constants';
 
-export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
-  parts: Parts,
-  { notifier = (notify) => notify() }: EnhancerOptions = {}
-): StoreEnhancer<PartsStoreExtensions<CombinedPartsState<Parts>>> {
+export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
+  notifier,
+  partMap,
+}: EnhancerConfig): Enhancer<Parts> {
   type PartedState = CombinedPartsState<Parts>;
-  type PartedExtensions = PartsStoreExtensions<PartedState>;
 
-  return function enhancer(
-    createStore: StoreEnhancerStoreCreator<PartedExtensions>
-  ) {
+  return function enhancer(createStore: EnhancerStoreCreator<Parts>) {
     return function enhance<StoreReducer extends Reducer>(
       reducer: StoreReducer,
       preloadedState: PreloadedState<PartedState> | undefined
     ) {
-      const partMap = getStatefulPartMap(parts);
       const partListenerMap = {} as Record<
         number,
         [Listener[] | null, Listener[]]
@@ -264,5 +256,5 @@ export function createPartitioner<Parts extends readonly AnyStatefulPart[]>(
         subscribeToPart,
       };
     };
-  } as StoreEnhancer<PartedExtensions>;
+  } as Enhancer<Parts>;
 }

@@ -6,7 +6,6 @@ import Parser from 'html-react-parser';
 
 import {
   createPartitioner,
-  createReducer,
   part,
   usePart,
   usePartUpdate,
@@ -55,8 +54,7 @@ const postData = part([postIdPart], async (id) => {
 });
 
 const parts = [postPart] as const;
-const reducer = createReducer(parts);
-const enhancer = createPartitioner(parts);
+const { enhancer, reducer } = createPartitioner({ parts });
 
 const store = configureStore({ reducer, enhancers: [enhancer] });
 
