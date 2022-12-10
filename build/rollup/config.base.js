@@ -30,7 +30,6 @@ export default {
   },
   plugins: [
     replace({
-      includes: /node_modules/,
       'process.env.NODE_ENV': JSON.stringify('production'),
       preventAssignment: true,
     }),
