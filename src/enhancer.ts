@@ -48,7 +48,7 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
        * Add the Part id as a unique entry to the queue to be notified, ensuring that any dependents
        * that also need to be notified are included and in the order needed for future gets.
        */
-      function addToNotifyPartsQueue(
+      function addPartsToNotify(
         partsToNotify: PartId[],
         part: AnySelectablePart
       ) {
@@ -61,7 +61,7 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
         }
 
         for (let index = 0; index < part.d.length; ++index) {
-          addToNotifyPartsQueue(partsToNotify, part.d[index]);
+          addPartsToNotify(partsToNotify, part.d[index]);
         }
       }
 
@@ -132,7 +132,7 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
         // the notification tree.
         const partsToNotify: PartId[] = [];
         for (let index = 0; index < nextNotifyPartsQueue.length; ++index) {
-          addToNotifyPartsQueue(partsToNotify, nextNotifyPartsQueue[index]);
+          addPartsToNotify(partsToNotify, nextNotifyPartsQueue[index]);
         }
 
         for (let index = 0; index < partsToNotify.length; ++index) {

@@ -1,13 +1,29 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { type AnyStatefulPart, part, createPartitioner } from '../src';
+import { configureStore, type Dispatch } from '@reduxjs/toolkit';
+import {
+  type AnyStatefulPart,
+  part,
+  createPartitioner,
+  GetState,
+} from '../src';
 
 function createStore<Parts extends readonly AnyStatefulPart[]>(parts: Parts) {
   const { enhancer, reducer } = createPartitioner({ parts });
 
-  return configureStore({
+  const store = configureStore({
     reducer,
     enhancers: [enhancer],
   });
+
+  // @ts-expect-error - v is hidden
+  const v = store.getState.v;
+
+  store.dispatch = jest.fn(store.dispatch) as Dispatch;
+  store.getState = jest.fn(store.getState) as unknown as GetState;
+
+  // @ts-expect-error - v is hidden
+  store.getState.v = v;
+
+  return store;
 }
 
 describe('part', () => {
@@ -111,6 +127,95 @@ describe('part', () => {
       expect(store.getState(cPart)).toEqual({ b: { a: 'next value' } });
       expect(store.getState(bPart)).toEqual({ a: 'next value' });
       expect(store.getState(aPart)).toEqual('next value');
+    });
+  });
+
+  describe('Select', () => {
+    it('should be a selector for the part', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part([primitivePart], (primitive) =>
+        primitive.toUpperCase()
+      );
+
+      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+    });
+
+    it('should be a general selector, if no parts are provided', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part((getState) =>
+        getState(primitivePart).toUpperCase()
+      );
+
+      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+    });
+  });
+
+  describe('Update', () => {
+    it('should be a thunk action creator', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const primitiveUpdate = part(null, (dispatch, _getState, nextValue) =>
+        dispatch(primitivePart(nextValue))
+      );
+
+      const thunk = primitiveUpdate('next value');
+
+      expect(thunk).toBeInstanceOf(Function);
+
+      thunk(store.dispatch, store.getState);
+
+      expect(store.dispatch).toHaveBeenCalledWith(primitivePart('next value'));
+    });
+  });
+
+  describe('Proxy', () => {
+    it('should have a selector for the part', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const uppercasePrimitiveProxy = part(
+        [primitivePart],
+        (primitive) => primitive.toUpperCase(),
+        (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
+      );
+
+      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
+    });
+
+    it('should have a general selector, if no parts are provided', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const uppercasePrimitiveProxy = part(
+        (getState) => getState(primitivePart).toUpperCase(),
+        (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
+      );
+
+      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
+    });
+
+    it('should have an updater', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const primitiveProxy = part(
+        [primitivePart],
+        (primitive) => primitive,
+        (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
+      );
+
+      const thunk = primitiveProxy.update('next value');
+
+      expect(thunk).toBeInstanceOf(Function);
+
+      thunk(store.dispatch, store.getState);
+
+      expect(store.dispatch).toHaveBeenCalledWith(primitivePart('next value'));
     });
   });
 });

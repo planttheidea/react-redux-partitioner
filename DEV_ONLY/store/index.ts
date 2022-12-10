@@ -63,14 +63,12 @@ const composeEnhancers =
   // @ts-expect-error - Devtools not on window type
   window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
-type StoreState = ReturnType<typeof reducer>;
-
 const reduxStoreEnhancer = composeEnhancers(applyMiddleware(logger), enhancer);
 
 export const store = createStore<
-  StoreState,
+  ReduxState,
   AnyAction,
-  PartsStoreExtensions<StoreState>,
+  PartsStoreExtensions<ReduxState>,
   {}
 >(reducer, reduxStoreEnhancer);
 
