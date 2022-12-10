@@ -18,9 +18,10 @@ export const conditionalUpdate = part(
     return dispatch(titlePart(nextTitle));
   }
 );
-export const resetTodosUpdate = part(null, (dispatch) =>
-  dispatch(todosPart([]))
-);
+// export const resetTodosUpdate = part(null, (dispatch) =>
+//   dispatch(todosPart([]))
+// );
+export const resetTodosUpdate = todosPart.update('RESET_TODOS', () => []);
 
 export const activeTogglePart = part('active', false);
 export const deactivateUpdate = activeTogglePart.update(
