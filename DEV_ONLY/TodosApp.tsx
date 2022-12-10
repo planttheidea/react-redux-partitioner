@@ -1,7 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 import React, { useCallback, useRef, useState } from 'react';
-import { Provider } from 'react-redux';
-import { createPartitioner, part, usePart, usePartValue } from '../src';
+import {
+  Provider,
+  createPartitioner,
+  part,
+  usePart,
+  usePartValue,
+} from '../src';
 
 const titlePart = part('title', 'My todos list');
 const descriptionPart = part('description', 'A simple list of todos');

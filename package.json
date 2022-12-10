@@ -7,7 +7,6 @@
   "dependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0",
-    "react-redux": ">=7.0.0",
     "redux": "^4.2.0",
     "use-sync-external-store": "^1.2.0"
   },
@@ -24,6 +23,7 @@
     "@types/jest": "^29.2.4",
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.9",
+    "@types/use-sync-external-store": "^0.0.3",
     "@typescript-eslint/eslint-plugin": "^5.44.0",
     "@typescript-eslint/parser": "^5.44.0",
     "eslint": "^8.28.0",

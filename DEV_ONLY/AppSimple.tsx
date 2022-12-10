@@ -1,8 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import React, { useEffect } from 'react';
-import { Provider } from 'react-redux';
 
-import { createPartitioner, part, usePart } from '../src';
+import { Provider, createPartitioner, part, usePart } from '../src';
 
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);

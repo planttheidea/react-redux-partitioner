@@ -1,22 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Provider as ReactReduxProvider,
-  useDispatch,
-  useStore,
-} from 'react-redux';
-import {
   // store,
   storeConfigured as store,
   type ReduxState,
 } from './store';
 
 import {
-  part,
+  Provider as ReactReduxPartitionerProvider,
+  useDispatch,
   usePart,
-  UsePartPair,
-  UsePartUpdate,
   usePartUpdate,
   usePartValue,
+  useStore,
 } from '../src';
 import {
   activateUpdate,
@@ -26,7 +21,6 @@ import {
   descriptionPart,
   firstNamePart,
   fullNameProxy,
-  fullNameSelect,
   idPart,
   lastNamePart,
   newUserUpdate,
@@ -94,7 +88,7 @@ function Owner() {
 }
 
 function Status() {
-  const store = useStore<ReduxState>();
+  const store = useStore();
   const dispatch = useDispatch();
   const [status, setStatus] = useState(store.getState().legacy);
 
@@ -244,7 +238,7 @@ export default function App() {
   // useAfterTimeout(() => setUserVisible(false), 1000);
 
   return (
-    <ReactReduxProvider store={store}>
+    <ReactReduxPartitionerProvider store={store}>
       <main>
         <h1>App</h1>
 
@@ -271,6 +265,6 @@ export default function App() {
 
         <Owner />
       </main>
-    </ReactReduxProvider>
+    </ReactReduxPartitionerProvider>
   );
 }

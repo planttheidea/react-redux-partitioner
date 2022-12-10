@@ -1,10 +1,10 @@
 import { a, useSpring } from '@react-spring/web';
 import { configureStore } from '@reduxjs/toolkit';
 import React, { Suspense } from 'react';
-import { Provider } from 'react-redux';
 import Parser from 'html-react-parser';
 
 import {
+  Provider,
   createPartitioner,
   part,
   usePart,

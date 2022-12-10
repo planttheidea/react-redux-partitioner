@@ -1,10 +1,11 @@
 import { useCallback, useContext, useMemo } from 'react';
-import { ReactReduxContext, useStore } from 'react-redux';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { ReactReduxPartitionerContext } from './context';
 import { getSuspensePromiseCacheEntry } from './suspensePromise';
 import { is, noop } from './utils';
 import { isPromise, isSelectablePart, isUpdateablePart } from './validate';
 
+import type { Action, AnyAction, Dispatch } from 'redux';
 import type {
   AnyPart,
   AnyPrimitivePart,
@@ -14,7 +15,27 @@ import type {
   UsePartUpdate,
   Store,
   UpdatePartArgs,
+  ReactReduxPartitionerContextType,
 } from './types';
+
+export function useDispatch(): Dispatch {
+  return useStore().dispatch;
+}
+
+export function usePartitionerContext<
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
+>(): ReactReduxPartitionerContextType<DispatchableAction, State> {
+  const context = useContext(
+    ReactReduxPartitionerContext
+  ) as ReactReduxPartitionerContextType<DispatchableAction, State>;
+
+  if (!context) {
+    throw new Error('boom');
+  }
+
+  return context;
+}
 
 export function usePart<Part extends AnyPart>(part: Part): UsePartPair<Part> {
   return [usePartValue(part), usePartUpdate(part)];
@@ -43,9 +64,7 @@ export function usePartUpdate<Part extends AnyPart>(
 export function usePartValue<Part extends AnyPart>(
   part: Part
 ): UsePartValue<Part> {
-  const context = useContext(ReactReduxContext);
-  const getServerState = context.getServerState;
-  const store = context.store as Store;
+  const { getServerState, store } = usePartitionerContext();
 
   const subscribe = useCallback(
     (listener: Listener) =>
@@ -85,4 +104,11 @@ export function usePartValue<Part extends AnyPart>(
   }
 
   throw entry.p;
+}
+
+export function useStore<
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
+>(): Store<State, DispatchableAction> {
+  return usePartitionerContext<State, DispatchableAction>().store;
 }
