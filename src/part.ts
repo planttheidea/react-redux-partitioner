@@ -139,11 +139,15 @@ function createBoundSelector<
   };
 }
 
-function createComposedReducer<State>(
-  name: keyof State,
-  originalReducer: Reducer
-) {
-  return function reduce(state: State, action: AnyAction): State {
+function createComposedReducer<Part extends AnyStatefulPart>(part: Part) {
+  type State = Part['i'];
+
+  const { i: initialState, o: name, r: originalReducer } = part;
+
+  return function reduce(
+    state: State = initialState,
+    action: AnyAction
+  ): State {
     const nextState = originalReducer(state[name], action);
 
     return is(state, nextState) ? state : { ...state, [name]: nextState };
@@ -257,10 +261,7 @@ function updateStatefulDependencies<State>(
 ) {
   dependencies.forEach((dependency) => {
     const path = [name, ...dependency.p];
-    const reducer = createComposedReducer<State>(
-      dependency.o as keyof State,
-      dependency.r
-    );
+    const reducer = createComposedReducer(dependency);
     const type = getPrefixedType(path, dependency.t);
 
     dependency.o = name;

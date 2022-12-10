@@ -1,54 +1,22 @@
 import { is } from './utils';
 import { isPartAction } from './validate';
 
-import type {
-  Action,
-  AnyAction,
-  Reducer,
-  ReducersMapObject,
-  StateFromReducersMapObject,
-} from 'redux';
+import type { Action, AnyAction, Reducer, ReducersMapObject } from 'redux';
 import type {
   AnyStatefulPart,
   CombinedPartsState,
   CreateReducerConfig,
-  PartMap,
 } from './types';
 
-export function getInitialState<Parts extends readonly AnyStatefulPart[]>(
-  parts: Parts
-) {
-  type State = CombinedPartsState<Parts>;
-
-  const initialState = {} as State;
-
-  for (let index = 0; index < parts.length; ++index) {
-    const part = parts[index];
-    const key = part.n as keyof State;
-
-    initialState[key] = part.i;
-  }
-
-  return initialState;
-}
-
-export function isReducersMap(
-  value: any
-): value is ReducersMapObject<any, any> {
-  return typeof value === 'object';
-}
-
-export function combineReduxReducers<
-  CombinedPartsState,
+export function combineOtherReducers<
+  OtherReducerState,
   DispatchableAction extends Action = AnyAction
 >(
-  reducers: ReducersMapObject<CombinedPartsState, DispatchableAction>
-): Reducer<StateFromReducersMapObject<typeof reducers>, DispatchableAction> {
-  type ReducerState = StateFromReducersMapObject<typeof reducers>;
-
+  reducers: ReducersMapObject<OtherReducerState, DispatchableAction>
+): Reducer<OtherReducerState, DispatchableAction> {
   const reducerKeys = Object.keys(reducers);
   const finalReducers = {} as ReducersMapObject<
-    ReducerState,
+    OtherReducerState,
     DispatchableAction
   >;
 
@@ -69,13 +37,16 @@ export function combineReduxReducers<
   const finalReducerKeys = Object.keys(finalReducers);
   const length = finalReducerKeys.length;
 
-  return function reducer(state: ReducerState, action: DispatchableAction) {
-    const nextState = {} as ReducerState;
+  return function reducer(
+    state: OtherReducerState,
+    action: DispatchableAction
+  ) {
+    const nextState = {} as OtherReducerState;
 
     let hasChanged = false;
 
     for (let i = 0; i < length; i++) {
-      const key = finalReducerKeys[i] as keyof ReducerState;
+      const key = finalReducerKeys[i] as keyof OtherReducerState;
       const previousStateForKey = state[key];
       const nextStateForKey = finalReducers[key](previousStateForKey, action);
 
@@ -96,19 +67,26 @@ export function combineReduxReducers<
     }
 
     return hasChanged ? nextState : state;
-  } as Reducer<ReducerState, DispatchableAction>;
+  };
 }
 
-export function createPartsReducer<
+export function createReducer<
   Parts extends readonly AnyStatefulPart[],
+  OtherReducerState,
   DispatchableAction extends AnyAction
->(parts: Parts, partMap: PartMap) {
-  type State = CombinedPartsState<Parts>;
+>({
+  otherReducer,
+  partMap,
+  parts,
+}: CreateReducerConfig<Parts, OtherReducerState, DispatchableAction>) {
+  type PartReducerState = CombinedPartsState<Parts>;
+  type CombinedState = Omit<OtherReducerState, keyof PartReducerState> &
+    PartReducerState;
 
-  return function partsReducer(
-    state: State = getInitialState(parts),
+  const partsReducer = function partsReducer(
+    state: CombinedState,
     action: DispatchableAction
-  ): State {
+  ): CombinedState {
     const part = partMap[action.$$part];
 
     if (!part) {
@@ -124,43 +102,21 @@ export function createPartsReducer<
 
     return is(prev, next) ? state : { ...state, [owner]: next };
   };
-}
-
-export function createReducer<
-  Parts extends readonly AnyStatefulPart[],
-  OtherReducerState,
-  DispatchableAction extends AnyAction
->({
-  otherReducer,
-  partMap,
-  parts,
-}: CreateReducerConfig<Parts, OtherReducerState, DispatchableAction>) {
-  type PartReducerState = CombinedPartsState<Parts>;
-  type OtherReducer = Reducer<OtherReducerState, DispatchableAction>;
-  type CombinedState = Omit<OtherReducerState, keyof PartReducerState> &
-    PartReducerState;
-
-  const partsReducer = createPartsReducer<Parts, DispatchableAction>(
-    parts,
-    partMap
-  );
 
   if (!otherReducer) {
     return function reducer(
       state: CombinedState = getInitialState(parts) as CombinedState,
       action: DispatchableAction
     ): CombinedState {
-      return isPartAction(action)
-        ? (partsReducer(state, action) as CombinedState)
-        : state;
+      return isPartAction(action) ? partsReducer(state, action) : state;
     };
   }
 
-  if (isReducersMap(otherReducer)) {
-    otherReducer = combineReduxReducers<OtherReducerState, DispatchableAction>(
-      otherReducer
-    ) as OtherReducer;
-  } else if (typeof otherReducer !== 'function') {
+  const additionalReducer = isReducersMap(otherReducer)
+    ? combineOtherReducers(otherReducer)
+    : otherReducer;
+
+  if (typeof additionalReducer !== 'function') {
     throw new ReferenceError(
       `\`otherReducer\` provided was expected to be a function or a map of reducers; received ${typeof otherReducer}`
     );
@@ -171,14 +127,36 @@ export function createReducer<
     action: DispatchableAction
   ): CombinedState {
     if (isPartAction(action)) {
-      return partsReducer(state, action) as CombinedState;
+      return partsReducer(state, action);
     }
 
-    const nextOtherState = (otherReducer as OtherReducer)(
+    const nextOtherState = additionalReducer(
       state as OtherReducerState,
       action
     );
 
     return is(state, nextOtherState) ? state : { ...state, ...nextOtherState };
   };
+}
+
+export function getInitialState<Parts extends readonly AnyStatefulPart[]>(
+  parts: Parts
+) {
+  type State = CombinedPartsState<Parts>;
+
+  const initialState = {} as State;
+
+  for (let index = 0; index < parts.length; ++index) {
+    const part = parts[index];
+
+    initialState[part.n as keyof State] = part.r(undefined, {});
+  }
+
+  return initialState;
+}
+
+export function isReducersMap(
+  value: any
+): value is ReducersMapObject<any, any> {
+  return typeof value === 'object';
 }
