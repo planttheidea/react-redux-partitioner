@@ -174,7 +174,7 @@ Also, if you want to update the state of the Part outside the scope of a React c
 store.dispatch(idPart(2345));
 ```
 
-This can come in handy when used in combination with other third-party libraries, such as `redux-saga` or a standard thunk. Also helpful for `redux-saga` is the fact that the `toString()` method on the part will return its action type, which allows for convenient use with utilities like `take`:
+This can come in handy when used in combination with other third-party libraries, such as `redux-saga` or `redux-thunk`. Also helpful for `redux-saga` is the fact that the `toString()` method on the part will return its action type, which allows for convenient use with utilities like `take`:
 
 ```ts
 yield takeLatest(idPart);
@@ -326,11 +326,25 @@ function Reset() {
 }
 ```
 
-Notice that `null` is passed to `part` as the first parameter; this identifies that there is no selector and therefore is an Update Part. Also, you can see that `dispatch` and `getState` are injected as the first two parameters to the method when used via `usePartUpdate`; this is because the Update Part itself is a thunk, and the method passed to `part` is receiving all parameters in the partially-applied method. This also allows for convenient use outself of a hook context, as the part itself is a thunk action creator.
+Notice that `null` is passed to `part` as the first parameter; this identifies that there is no selector and therefore is an Update Part. Also, you can see that `dispatch` and `getState` are injected as the first two parameters to the method when used via `usePartUpdate`; this is because the Update Part works as a thunk:
 
 ```ts
-store.dispatch(resetApp());
+const updaterPart = part(null, (dispatch, _getState, nextValue: string) =>
+  dispatch(fooPart('bar'))
+);
+// is functionallty equivalent to
+const updaterPart =
+  (nextValue: string) => (dispatch: Dispatch, _getState: GetState) =>
+    dispatch(fooPart(fooValue));
 ```
+
+This allows for convenient use both in and out of a hook context.
+
+```ts
+store.dispatch(resetApp('Next title', 'Next description'));
+```
+
+Please note that if an `extraArgument` is provided to `redux-thunk`, it will not be available.
 
 ### Proxy Parts
 
