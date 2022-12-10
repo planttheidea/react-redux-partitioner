@@ -88,7 +88,7 @@ function Owner() {
 }
 
 function Status() {
-  const store = useStore();
+  const store = useStore<ReduxState>();
   const dispatch = useDispatch();
   const [status, setStatus] = useState(store.getState().legacy);
 
