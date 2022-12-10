@@ -185,14 +185,7 @@ function User() {
 
   useAfterTimeout(() => setUser({ id: 'nextId', name: 'New Name' }), 3500);
 
-  return (
-    <div>
-      <h2>User: {user}</h2>
-
-      <UserId />
-      <UserName />
-    </div>
-  );
+  return <h2>User: {user}</h2>;
 }
 
 function UserId() {
@@ -251,6 +244,10 @@ export default function App() {
         {userVisible && (
           <>
             <User />
+
+            <UserId />
+            <UserName />
+
             <UserNameStoreSelector />
           </>
         )}
