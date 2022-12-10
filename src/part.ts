@@ -297,7 +297,7 @@ export function createComposedPart<
     };
   };
 
-  part.id = getId(name);
+  part.id = getId();
   part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
@@ -342,7 +342,7 @@ export function createPrimitivePart<Name extends string, State>(
     };
   };
 
-  part.id = getId(name);
+  part.id = getId();
   part.toString = () => part.t;
   part.update = createPartUpdater(part);
 
@@ -379,7 +379,7 @@ export function createBoundSelectPart<
   const select = createBoundSelector(parts, get, isEqual);
   const part = select as BoundSelectPart<Parts, Selector>;
 
-  part.id = getId('BoundSelectPart');
+  part.id = getId();
 
   part.b = true;
   part.d = [];
@@ -400,7 +400,7 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
   const select = createUnboundSelector(get, isEqual);
   const part = select as UnboundSelectPart<Selector>;
 
-  part.id = getId('UnboundSelectPart');
+  part.id = getId();
 
   part.b = false;
   part.d = [];
@@ -425,7 +425,7 @@ export function createBoundProxyPart<
 
   const part = {} as BoundProxyPart<Parts, Selector, Updater>;
 
-  part.id = getId('BoundProxyPart');
+  part.id = getId();
   part.select = select;
   part.update = update;
 
@@ -453,7 +453,7 @@ export function createUnboundProxyPart<
 
   const part = {} as UnboundProxyPart<Selector, Updater>;
 
-  part.id = getId('UnboundProxyPart');
+  part.id = getId();
   part.select = select;
   part.update = update;
 
@@ -473,7 +473,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 
   const part = createUpdate(set) as UpdatePart<Updater>;
 
-  part.id = getId('UpdatePart');
+  part.id = getId();
 
   part.d = IGNORE_ALL_DEPENDENCIES;
   part.f = UPDATE_PART as UpdatePart<Updater>['f'];
