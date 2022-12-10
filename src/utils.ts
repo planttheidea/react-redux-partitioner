@@ -1,5 +1,9 @@
 import type { AnyStatefulPart, PartId, PartMap } from './types';
 
+/**
+ * Implementation of the [sfc32 PRNG](https://github.com/bryc/code/blob/master/jshash/PRNGs.md#sfc32), where
+ * the string basis for the seed is randomly-generated, hence making the seed itself random per-runtime.
+ */
 function createIdGenerator() {
   const source = Math.random().toString(16);
   const max = Number.MAX_SAFE_INTEGER || 9007199254740991;
@@ -29,18 +33,17 @@ function createIdGenerator() {
   let d = (h4 ^ h1) >>> 0;
 
   return function getId(): PartId {
-    a >>>= 0;
-    b >>>= 0;
-    c >>>= 0;
-    d >>>= 0;
+    a |= 0;
+    b |= 0;
+    c |= 0;
+    d |= 0;
 
-    let t = (a + b) | 0;
+    let t = (((a + b) | 0) + d) | 0;
 
+    d = (d + 1) | 0;
     a = b ^ (b >>> 9);
     b = (c + (c << 3)) | 0;
     c = (c << 21) | (c >>> 11);
-    d = (d + 1) | 0;
-    t = (t + d) | 0;
     c = (c + t) | 0;
 
     return Math.floor(((t >>> 0) / 4294967296) * max) + 1;
