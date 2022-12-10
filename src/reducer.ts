@@ -63,10 +63,7 @@ export function combineReduxReducers<
   const finalReducerKeys = Object.keys(finalReducers);
   const length = finalReducerKeys.length;
 
-  return function reducer(
-    state: ReducerState = {} as ReducerState,
-    action: DispatchedAction
-  ) {
+  return function reducer(state: ReducerState, action: DispatchedAction) {
     const nextState = {} as ReducerState;
 
     let hasChanged = false;
@@ -108,11 +105,15 @@ export function createPartsReducer<
     state: State = getInitialState(parts),
     action: DispatchedAction
   ): State {
-    if (!isPartAction(action)) {
-      return state;
+    const part = partMap[action.$$part];
+
+    if (!part) {
+      throw new ReferenceError(
+        `Part with ID \`${action.$$part}\` was not provided to the partitioner for inclusion in state. ` +
+          'Please add it to the list of parts provided to `createPartitioner`.'
+      );
     }
 
-    const part = partMap[action.$$part];
     const owner = part.o;
     const prev = state[owner];
     const next = part.r(prev, action);
@@ -137,34 +138,39 @@ export function createReducer<
   type PartReducerState = CombinedPartsState<Parts>;
   type CombinedState = Omit<OtherReducerState, keyof PartReducerState> &
     PartReducerState;
+  type OtherReducer = Reducer<OtherReducerState, DispatchedAction>;
 
   if (!otherReducer) {
-    return partsReducer as Reducer<CombinedState, DispatchedAction>;
+    return function reducer(
+      state: CombinedState = getInitialState(parts) as CombinedState,
+      action: DispatchedAction
+    ) {
+      return isPartAction(action) ? partsReducer(state, action) : state;
+    };
   }
 
   if (isReducersMap(otherReducer)) {
-    // @ts-expect-error - CombinedPartsState typing is a bit wonky
-    otherReducer = combineReduxReducers<OtherState, DispatchedAction>(
+    otherReducer = combineReduxReducers<OtherReducerState, DispatchedAction>(
       otherReducer
+    ) as OtherReducer;
+  } else if (typeof otherReducer !== 'function') {
+    throw new ReferenceError(
+      `\`otherReducer\` provided was expected to be a function; received ${typeof otherReducer}`
     );
   }
 
-  const initialState = partsReducer(undefined, { type: ActionTypes.INIT });
-
   return function reducer(
-    state: CombinedState = initialState as CombinedState,
+    state: CombinedState = getInitialState(parts) as CombinedState,
     action: DispatchedAction
   ): CombinedState {
     if (isPartAction(action)) {
-      const nextPartState = partsReducer(state, action);
-
-      if (!is(state, nextPartState)) {
-        return { ...state, ...nextPartState };
-      }
+      return partsReducer(state, action) as CombinedState;
     }
 
-    // @ts-expect-error - `otherReducer` is still not type-narrowed, for some reason.
-    const nextOtherState = otherReducer(state, action);
+    const nextOtherState = (otherReducer as OtherReducer)(
+      state as OtherReducerState,
+      action
+    );
 
     return is(state, nextOtherState) ? state : { ...state, ...nextOtherState };
   };
