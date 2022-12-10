@@ -164,7 +164,7 @@ export function createReducer<
     ) as OtherReducer;
   } else if (typeof otherReducer !== 'function') {
     throw new ReferenceError(
-      `\`otherReducer\` provided was expected to be a function; received ${typeof otherReducer}`
+      `\`otherReducer\` provided was expected to be a function or a map of reducers; received ${typeof otherReducer}`
     );
   }
 
