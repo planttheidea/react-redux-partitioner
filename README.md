@@ -45,12 +45,11 @@ interface Todo {
 }
 export const todosPart = part('todos', [] as Todo[]);
 
-// create the reducer and store enhancer from these parts
-import { createPartitioner, createReducer } from 'react-redux-partitioner';
+// create the reducer and store enhancer
+import { createPartitioner } from 'react-redux-partitioner';
 
 const parts = [titlePart, descriptionPart, todosPart] as const;
-const reducer = createReducer(parts);
-const enhancer = createPartitioner(parts);
+const { enhancer, reducer } = createPartitioner({ parts });
 
 // create your store
 import { configureStore } from '@reduxjs/toolkit';
