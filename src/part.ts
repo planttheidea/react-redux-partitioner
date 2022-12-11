@@ -206,7 +206,7 @@ function createUpdate<Updater extends AnyUpdater>(set: Updater) {
   };
 }
 
-function getDescendantSelectDependents(parts: readonly AnySelectablePart[]) {
+function getAllDescendantDependents(parts: readonly AnySelectablePart[]) {
   return parts.reduce((dependents, part) => {
     part.d.forEach((partDependent) => {
       if (isSelectPart(partDependent) || isProxyPart(partDependent)) {
@@ -215,7 +215,7 @@ function getDescendantSelectDependents(parts: readonly AnySelectablePart[]) {
     });
 
     if (isStatefulPart(part)) {
-      dependents.push(...getDescendantSelectDependents(part.c));
+      dependents.push(...getAllDescendantDependents(part.c));
     }
 
     return dependents;
@@ -236,41 +236,41 @@ function isFunctionalUpdate<State>(
   return typeof value === 'function';
 }
 
-function updateSelectableDependencies(
-  dependencies: readonly AnySelectablePart[],
+function updateSelectableDependents(
+  dependents: readonly AnySelectablePart[],
   part: AnySelectablePart
 ) {
-  dependencies.forEach((dependency) => {
-    updateUniqueList(dependency.d, part);
+  dependents.forEach((dependent) => {
+    updateUniqueList(dependent.d, part);
 
     // If the item is a nested state value, traverse up
     // its stateful dependents to ensure any updates to
     // state ancestors also trigger listeners.
-    dependency.d.forEach((dependencyDependent) => {
-      if (isStatefulPart(dependencyDependent)) {
-        updateUniqueList(dependencyDependent.d, part);
+    dependent.d.forEach((descendant) => {
+      if (isStatefulPart(descendant)) {
+        updateUniqueList(descendant.d, part);
       }
     });
   });
 }
 
-function updateStatefulDependencies<State>(
-  dependencies: readonly AnyStatefulPart[],
+function updateStatefulDependents<State>(
+  dependents: readonly AnyStatefulPart[],
   part: AnyStatefulPart,
   name: string
 ) {
-  dependencies.forEach((dependency) => {
-    const path = [name, ...dependency.p];
-    const reducer = createComposedReducer(dependency);
-    const type = getPrefixedType(path, dependency.t);
+  dependents.forEach((dependent) => {
+    const path = [name, ...dependent.p];
+    const reducer = createComposedReducer(dependent);
+    const type = getPrefixedType(path, dependent.t);
 
-    dependency.o = name;
-    dependency.p = path;
-    dependency.r = reducer;
-    dependency.t = type;
+    dependent.o = name;
+    dependent.p = path;
+    dependent.r = reducer;
+    dependent.t = type;
 
-    updateUniqueList(dependency.d, part);
-    updateStatefulDependencies<State>(dependency.c, part, name);
+    updateUniqueList(dependent.d, part);
+    updateStatefulDependents<State>(dependent.c, part, name);
   });
 }
 
@@ -303,7 +303,7 @@ export function createComposedPart<
   part.update = createPartUpdater(part);
 
   part.c = [...parts];
-  part.d = getDescendantSelectDependents(parts);
+  part.d = getAllDescendantDependents(parts);
   part.f = COMPOSED_PART as ComposedPart<Name, Parts>['f'];
   part.g = createStatefulGet(part);
   part.i = initialState;
@@ -323,7 +323,7 @@ export function createComposedPart<
   };
   part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
 
-  updateStatefulDependencies<State>(parts, part, name);
+  updateStatefulDependents<State>(parts, part, name);
 
   return part;
 }
@@ -388,7 +388,7 @@ export function createBoundSelectPart<
   part.g = select;
   part.s = noop;
 
-  updateSelectableDependencies(parts, part);
+  updateSelectableDependents(parts, part);
 
   return part;
 }
@@ -436,7 +436,7 @@ export function createBoundProxyPart<
   part.g = select;
   part.s = set;
 
-  updateSelectableDependencies(parts, part);
+  updateSelectableDependents(parts, part);
 
   return part;
 }
