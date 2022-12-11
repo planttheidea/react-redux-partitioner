@@ -8,8 +8,20 @@ export interface PartitionerOptions<
   OtherReducerState,
   DispatchableAction extends AnyAction
 > {
+  /**
+   * Custom notifier, which receives the method by which state update subscribers are notified
+   * and calls this method when desired. Often used for batching updates.
+   */
   notifier?: Notifier;
+  /**
+   * The list of Parts that will be the top-most state in the store.
+   */
   parts: Parts;
+  /**
+   * Additional reducers used by the store which are not themselves parts. This can either be
+   * a pre-built reducer function, or a map of reducers that would normally be passed to `redux`'s
+   * `combineReducers` method.
+   */
   otherReducer?:
     | Reducer<OtherReducerState, DispatchableAction>
     | ReducersMapObject<OtherReducerState, DispatchableAction>

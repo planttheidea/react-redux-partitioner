@@ -6,7 +6,14 @@ export interface ReactReduxPartitionerContextType<
   DispatchableAction extends Action = AnyAction,
   State = unknown
 > {
+  /**
+   * Returns a snapshot of state, essentially the server-side equivalent of
+   * `store.getState()`. Used for SSR.
+   */
   getServerState?: () => State;
+  /**
+   * The store which has been enhanced with the partitioner.
+   */
   store: Store<State, DispatchableAction>;
 }
 

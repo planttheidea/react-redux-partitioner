@@ -521,20 +521,39 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
   } as StatefulPartUpdater<Part['i']>;
 }
 
+/**
+ * Creates a Part for use in Redux state.
+ */
 export function part<Name extends string, State>(
   name: Name,
   initialState: []
 ): PrimitivePart<Name, any[]>;
 
+/**
+ * Creates a Part for use in Redux state which is composed
+ * of other Parts.
+ */
 export function part<Name extends string, Parts extends Tuple<AnyStatefulPart>>(
   name: Name,
   parts: Parts
 ): ComposedPart<Name, Parts>;
+/**
+ * Creates a Part for use in Redux state.
+ */
 export function part<Name extends string, State>(
   name: Name,
   initialState: State
 ): PrimitivePart<Name, State>;
 
+/**
+ * Creates a Proxy Part, which allows deriving a value based on values
+ * selected from state, but also performing updates of values in state.
+ * When used with `usePart`, it will update whenever the value of at
+ * least one Part passed has changed.
+ *
+ * While the values in state selected are specific to the Parts passed,
+ * the update method may be used to dispatch any action.
+ */
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends (...args: SelectPartArgs<Parts>) => any,
@@ -544,31 +563,77 @@ export function part<
   selector: Selector,
   updater: Updater
 ): BoundProxyPart<Parts, Selector, Updater>;
+/**
+ * Creates a Proxy Part, which allows deriving a value based on values
+ * selected from state, but also performing updates of values in state.
+ * When used with `usePart`, it will update whenever the state object
+ * changes.
+ *
+ * This only beneficial if being used with values in state that are not
+ * using Parts. If you only are concerned with values in state that are
+ * Parts, you should pass an array of those Parts before the selector.
+ */
 export function part<
   Selector extends AnyGenericSelector,
   Updater extends AnyUpdater
 >(selector: Selector, updater: Updater): UnboundProxyPart<Selector, Updater>;
 
+/**
+ * Creates a Select Part, which allows deriving a value based on values
+ * selected from state. When used with `usePart`, it will update whenever
+ * the value of at least one Part passed has changed.
+ */
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends (...args: SelectPartArgs<Parts>) => any
 >(parts: Parts, selector: Selector): BoundSelectPart<Parts, Selector>;
+/**
+ * Creates a Select Part, which allows deriving a value based on values
+ * selected from state. When used with `usePart`, it will update whenever
+ * the state object changes.
+ *
+ * This only beneficial if being used with values in state that are not
+ * using Parts. If you only are concerned with values in state that are
+ * Parts, you should pass an array of those Parts before the selector.
+ */
 export function part<Selector extends AnyGenericSelector>(
   selector: Selector
 ): UnboundSelectPart<Selector>;
 
+/**
+ * Creates an Update Part, which allows performing updates of values in
+ * state. When used with `usePart`, it itself will never trigger an update.
+ * As such, it is recommended to use this with `usePartUpdate` instead of
+ * `usePart`.
+ */
 export function part<Updater extends AnyUpdater>(
   _: null,
   update: Updater
 ): UpdatePart<Updater>;
 
+/**
+ * Creates a Part for use in Redux state which is composed
+ * of other Parts.
+ */
 export function part<Name extends string, Parts extends Tuple<AnyStatefulPart>>(
   config: ComposedPartConfig<Name, Parts>
 ): ComposedPart<Name, Parts>;
+/**
+ * Creates a Part for use in Redux state.
+ */
 export function part<Name extends string, State>(
   config: PrimitivePartConfig<Name, State>
 ): PrimitivePart<Name, State>;
 
+/**
+ * Creates a Proxy Part, which allows deriving a value based on values
+ * selected from state, but also performing updates of values in state.
+ * When used with `usePart`, it will update whenever the value of at
+ * least one Part passed has changed.
+ *
+ * While the values in state selected are specific to the Parts passed,
+ * the update method may be used to dispatch any action.
+ */
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector,
@@ -576,6 +641,15 @@ export function part<
 >(
   config: BoundProxyPartConfig<Parts, Selector, Updater>
 ): BoundProxyPart<Parts, Selector, Updater>;
+/**
+ * Creates a Proxy Part, which allows deriving a value based on values
+ * selected from state, but also performing updates of values in state.
+ * When used with `usePart`, it will update whenever the state object changes.
+ *
+ * This only beneficial if being used with values in state that are not
+ * using Parts. If you only are concerned with values in state that are
+ * Parts, you should pass an array of those Parts before the selector.
+ */
 export function part<
   Selector extends AnyGenericSelector,
   Updater extends AnyUpdater
@@ -583,16 +657,36 @@ export function part<
   config: UnboundProxyPartConfig<Selector, Updater>
 ): UnboundProxyPart<Selector, Updater>;
 
+/**
+ * Creates a Select Part, which allows deriving a value based on values
+ * selected from state. When used with `usePart`, it will update whenever
+ * the value of at least one Part passed has changed.
+ */
 export function part<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector
 >(
   config: BoundSelectPartConfig<Parts, Selector>
 ): BoundSelectPart<Parts, Selector>;
+/**
+ * Creates a Select Part, which allows deriving a value based on values
+ * selected from state. When used with `usePart`, it will update whenever
+ * the state object changes.
+ *
+ * This only beneficial if being used with values in state that are not
+ * using Parts. If you only are concerned with values in state that are
+ * Parts, you should pass an array of those Parts before the selector.
+ */
 export function part<Selector extends AnyGenericSelector>(
   config: UnboundSelectPartConfig<Selector>
 ): UnboundSelectPart<Selector>;
 
+/**
+ * Creates an Update Part, which allows performing updates of values in
+ * state. When used with `usePart`, it itself will never trigger an update.
+ * As such, it is recommended to use this with `usePartUpdate` instead of
+ * `usePart`.
+ */
 export function part<Updater extends AnyUpdater>(
   config: UpdatePartConfig<Updater>
 ): UpdatePart<Updater>;
