@@ -199,12 +199,8 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
             return;
           }
 
-          console.group('unsubscribed');
-
           subscribed = false;
           updatePartListeners(part, listener, false);
-
-          console.groupEnd();
         };
       }
 

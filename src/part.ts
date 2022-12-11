@@ -52,6 +52,7 @@ import type {
   ComposedPart,
   ComposedPartConfig,
   FunctionalUpdate,
+  Get,
   GetState,
   IsEqual,
   MaybePromise,
@@ -59,6 +60,7 @@ import type {
   PrimitivePart,
   PrimitivePartConfig,
   SelectPartArgs,
+  Set,
   StatefulPartUpdater,
   Tuple,
   UnboundProxyPart,
@@ -139,7 +141,9 @@ function createBoundSelector<
   };
 }
 
-function createComposedReducer<Part extends AnyStatefulPart>(part: Part) {
+function createComposedReducer<Part extends AnyStatefulPart>(
+  part: Part
+): Reducer<Part['i'], AnyAction> {
   type State = Part['i'];
 
   const { i: initialState, o: name, r: originalReducer } = part;
@@ -148,13 +152,16 @@ function createComposedReducer<Part extends AnyStatefulPart>(part: Part) {
     state: State = initialState,
     action: AnyAction
   ): State {
-    const nextState = originalReducer(state[name], action);
+    const prevState = state[name];
+    const nextState = originalReducer(prevState, action);
 
-    return is(state, nextState) ? state : { ...state, [name]: nextState };
+    return is(prevState, nextState) ? state : { ...state, [name]: nextState };
   };
 }
 
-function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
+function createStatefulGet<Part extends AnyStatefulPart>(
+  part: Part
+): Get<Part['i']> {
   return function get(getState: GetState): Part['i'] {
     const path = part.p;
 
@@ -165,6 +172,28 @@ function createStatefulGet<Part extends AnyStatefulPart>(part: Part) {
     }
 
     return state;
+  };
+}
+
+function createStatefulReduce<Part extends AnyStatefulPart>(
+  part: Part
+): Reducer<Part['i'], AnyAction> {
+  return function reduce(state: Part['i'] = part.i, action: any) {
+    return action.$$part === part.id && !is(state, action.value)
+      ? action.value
+      : state;
+  };
+}
+
+function createStatefulSet<Part extends AnyStatefulPart>(
+  part: Part
+): Set<Part['i']> {
+  return function set(dispatch, getState, update) {
+    const nextValue = isFunctionalUpdate<Part['i']>(update)
+      ? update(part.g(getState))
+      : update;
+
+    return dispatch(part(nextValue));
   };
 }
 
@@ -310,17 +339,8 @@ export function createComposedPart<
   part.n = name;
   part.o = name;
   part.p = [name];
-  part.r = (state: State = initialState, action: any) =>
-    action.$$part === part.id && !is(state, action.value)
-      ? { ...state, ...action.value }
-      : state;
-  part.s = (dispatch, getState, update) => {
-    const nextValue = isFunctionalUpdate<State>(update)
-      ? update(part.g(getState))
-      : update;
-
-    return dispatch(part(nextValue));
-  };
+  part.r = createStatefulReduce(part);
+  part.s = createStatefulSet(part);
   part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
 
   updateStatefulDependents<State>(parts, part, name);
@@ -355,17 +375,8 @@ export function createPrimitivePart<Name extends string, State>(
   part.n = name;
   part.o = name;
   part.p = [name];
-  part.r = (state: State = initialState, action: any) =>
-    action.$$part === part.id && !is(state, action.value)
-      ? action.value
-      : state;
-  part.s = (dispatch, getState, update) => {
-    const nextValue = isFunctionalUpdate<State>(update)
-      ? update(part.g(getState))
-      : update;
-
-    return dispatch(part(nextValue));
-  };
+  part.r = createStatefulReduce(part);
+  part.s = createStatefulSet(part);
   part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
 
   return part;

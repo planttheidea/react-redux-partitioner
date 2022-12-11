@@ -15,5 +15,5 @@
     "types": ["jest", "node", "react"]
   },
   "exclude": ["node_modules"],
-  "include": ["../../src/*", "../../__tests__/*"]
+  "include": ["../../src/*", "../../__tests__/**/*"]
 }
