@@ -18,10 +18,16 @@ import type {
   ReactReduxPartitionerContextType,
 } from './types';
 
+/**
+ * Use the store's `dispatch` method within the scope of a React component.
+ */
 export function useDispatch(): Dispatch {
   return useStore().dispatch;
 }
 
+/**
+ * Access the partitioner context used by `react-redux-partitioner`.
+ */
 export function usePartitionerContext<
   State = unknown,
   DispatchableAction extends Action = AnyAction
@@ -37,10 +43,25 @@ export function usePartitionerContext<
   return context;
 }
 
+/**
+ * Returns a [value, update] `useState`-style pair for the Part passed.
+ *
+ * Note: Certain Part types do not support both value and update:
+ * - Select Parts have no update method, and therefore the update returned is a no-op
+ *   for those Parts.
+ * - Update Parts have no value, and therefore the value returned is `undefined` for
+ *   those Parts.
+ */
 export function usePart<Part extends AnyPart>(part: Part): UsePartPair<Part> {
   return [usePartValue(part), usePartUpdate(part)];
 }
 
+/**
+ * Returns the updater for the Part, bound to the store's `dispatch` method.
+ *
+ * Note: Select Parts have no update method, and therefore the update returned is a no-op
+ * for those Parts.
+ */
 export function usePartUpdate<Part extends AnyPart>(
   part: Part
 ): UsePartUpdate<Part> {
@@ -61,6 +82,13 @@ export function usePartUpdate<Part extends AnyPart>(
   ) as UsePartUpdate<Part>;
 }
 
+/**
+ * Returns the value for the Part passed. For Stateful Parts this is the value stored in
+ * state, and for Select or Proxy parts this is the derived value.
+ *
+ * Note: Update Parts have no value, and therefore the value returned is `undefined` for
+ * those Parts.
+ */
 export function usePartValue<Part extends AnyPart>(
   part: Part
 ): UsePartValue<Part> {
@@ -106,6 +134,9 @@ export function usePartValue<Part extends AnyPart>(
   throw entry.p;
 }
 
+/**
+ * Use the store within the scope of a React component.
+ */
 export function useStore<
   State = unknown,
   DispatchableAction extends Action = AnyAction

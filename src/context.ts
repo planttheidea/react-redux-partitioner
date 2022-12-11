@@ -8,6 +8,10 @@ export const ReactReduxPartitionerContext =
 
 const { Provider: ContextProvider } = ReactReduxPartitionerContext;
 
+/**
+ * Provides the store values used by the partitioner to manage updates
+ * of Parts within the subtree.
+ */
 export function Provider<
   DispatchableAction extends Action = AnyAction,
   State = unknown
