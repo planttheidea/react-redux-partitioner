@@ -1,12 +1,15 @@
 import { configureStore, type Dispatch } from '@reduxjs/toolkit';
 import {
   type AnyStatefulPart,
+  type Store,
   part,
   createPartitioner,
   GetState,
 } from '../src';
 
-function createStore<Parts extends readonly AnyStatefulPart[]>(parts: Parts) {
+function createStore<Parts extends readonly AnyStatefulPart[]>(
+  parts: Parts
+): Store {
   const { enhancer, reducer } = createPartitioner({ parts });
 
   const store = configureStore({
@@ -17,13 +20,13 @@ function createStore<Parts extends readonly AnyStatefulPart[]>(parts: Parts) {
   // @ts-expect-error - v is hidden
   const v = store.getState.v;
 
-  store.dispatch = jest.fn(store.dispatch) as Dispatch;
-  store.getState = jest.fn(store.getState) as unknown as GetState;
+  const dispatch = jest.fn(store.dispatch) as Dispatch;
+  const getState = jest.fn(store.getState) as unknown as GetState;
 
   // @ts-expect-error - v is hidden
-  store.getState.v = v;
+  getState.v = v;
 
-  return store;
+  return { ...store, dispatch, getState };
 }
 
 describe('part', () => {
@@ -152,6 +155,84 @@ describe('part', () => {
 
       expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
     });
+
+    it('should support nesting of selectors', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part([primitivePart], (primitive) =>
+        primitive.toUpperCase()
+      );
+      const selectReverseUppercasePrimitive = part(
+        [selectUppercasePrimitive],
+        (primitive) => primitive.split('').reverse().join('')
+      );
+      const selectReversePrimitive = part(
+        [selectReverseUppercasePrimitive],
+        (primitive) => primitive.toLowerCase()
+      );
+      const selectOriginalPrimitive = part(
+        [selectReversePrimitive],
+        (primitive) => primitive.split('').reverse().join('')
+      );
+
+      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(selectReverseUppercasePrimitive(store.getState)).toEqual('EULAV');
+      expect(selectReversePrimitive(store.getState)).toEqual('eulav');
+      expect(selectOriginalPrimitive(store.getState)).toEqual('value');
+    });
+
+    it('should support async selectors for the part', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part(
+        [primitivePart],
+        async (primitive) => primitive.toUpperCase()
+      );
+
+      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+    });
+
+    it('should be a general async selector, if no parts are provided', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part(async (getState) =>
+        getState(primitivePart).toUpperCase()
+      );
+
+      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+    });
+
+    it('should support nesting of selectors, both async and sync', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const selectUppercasePrimitive = part(
+        [primitivePart],
+        async (primitive) => primitive.toUpperCase()
+      );
+      const selectReverseUppercasePrimitive = part(
+        [selectUppercasePrimitive],
+        (primitive) => primitive.split('').reverse().join('')
+      );
+      const selectReversePrimitive = part(
+        [selectReverseUppercasePrimitive],
+        async (primitive) => primitive.toLowerCase()
+      );
+      const selectOriginalPrimitive = part(
+        [selectReversePrimitive],
+        (primitive) => primitive.split('').reverse().join('')
+      );
+
+      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(await selectReverseUppercasePrimitive(store.getState)).toEqual(
+        'EULAV'
+      );
+      expect(await selectReversePrimitive(store.getState)).toEqual('eulav');
+      expect(await selectOriginalPrimitive(store.getState)).toEqual('value');
+    });
   });
 
   describe('Update', () => {
@@ -170,6 +251,29 @@ describe('part', () => {
       thunk(store.dispatch, store.getState);
 
       expect(store.dispatch).toHaveBeenCalledWith(primitivePart('next value'));
+    });
+
+    it('should allow for dispatching multiple actions', () => {
+      const primitivePart = part('primitive', 'value');
+      const otherPart = part('other', 123);
+      const store = createStore([primitivePart, otherPart] as const);
+
+      const primitiveUpdate = part(null, (dispatch, _getState, nextValue) => {
+        dispatch(primitivePart(nextValue));
+        dispatch(otherPart(0));
+      });
+
+      const thunk = primitiveUpdate('next value');
+
+      expect(thunk).toBeInstanceOf(Function);
+
+      thunk(store.dispatch, store.getState);
+
+      expect(store.dispatch).toHaveBeenNthCalledWith(
+        1,
+        primitivePart('next value')
+      );
+      expect(store.dispatch).toHaveBeenNthCalledWith(2, otherPart(0));
     });
   });
 
@@ -199,6 +303,119 @@ describe('part', () => {
       expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
     });
 
+    it('should support nesting of selectors', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const setPrimitive = (
+        dispatch: Dispatch,
+        _getState: GetState,
+        nextValue: string
+      ) => dispatch(primitivePart(nextValue));
+
+      const uppercasePrimitiveProxy = part(
+        [primitivePart],
+        (primitive) => primitive.toUpperCase(),
+        setPrimitive
+      );
+      const reverseUppercasePrimitiveProxy = part(
+        [uppercasePrimitiveProxy],
+        (primitive) => primitive.split('').reverse().join(''),
+        setPrimitive
+      );
+      const reversePrimitiveProxy = part(
+        [reverseUppercasePrimitiveProxy],
+        (primitive) => primitive.toLowerCase(),
+        setPrimitive
+      );
+      const originalPrimitiveProxy = part(
+        [reversePrimitiveProxy],
+        (primitive) => primitive.split('').reverse().join(''),
+        setPrimitive
+      );
+
+      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
+      expect(reverseUppercasePrimitiveProxy.select(store.getState)).toEqual(
+        'EULAV'
+      );
+      expect(reversePrimitiveProxy.select(store.getState)).toEqual('eulav');
+      expect(originalPrimitiveProxy.select(store.getState)).toEqual('value');
+    });
+
+    it('should support async selectors for the part', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const uppercasePrimitiveProxy = part(
+        [primitivePart],
+        async (primitive) => primitive.toUpperCase(),
+        (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
+      );
+
+      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
+        'VALUE'
+      );
+    });
+
+    it('should be a general async selector, if no parts are provided', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const uppercasePrimitiveProxy = part(
+        async (getState) => getState(primitivePart).toUpperCase(),
+        (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
+      );
+
+      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
+        'VALUE'
+      );
+    });
+
+    it('should support nesting of selectors, both async and sync', async () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore([primitivePart] as const);
+
+      const setPrimitive = (
+        dispatch: Dispatch,
+        _getState: GetState,
+        nextValue: string
+      ) => dispatch(primitivePart(nextValue));
+
+      const uppercasePrimitiveProxy = part(
+        [primitivePart],
+        async (primitive) => primitive.toUpperCase(),
+        setPrimitive
+      );
+      const reverseUppercasePrimitiveProxy = part(
+        [uppercasePrimitiveProxy],
+        (primitive) => primitive.split('').reverse().join(''),
+        setPrimitive
+      );
+      const reversePrimitiveProxy = part(
+        [reverseUppercasePrimitiveProxy],
+        async (primitive) => primitive.toLowerCase(),
+        setPrimitive
+      );
+      const originalPrimitiveProxy = part(
+        [reversePrimitiveProxy],
+        (primitive) => primitive.split('').reverse().join(''),
+        setPrimitive
+      );
+
+      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
+        'VALUE'
+      );
+      expect(
+        await reverseUppercasePrimitiveProxy.select(store.getState)
+      ).toEqual('EULAV');
+      expect(await reversePrimitiveProxy.select(store.getState)).toEqual(
+        'eulav'
+      );
+      expect(await originalPrimitiveProxy.select(store.getState)).toEqual(
+        'value'
+      );
+    });
+
     it('should have an updater', () => {
       const primitivePart = part('primitive', 'value');
       const store = createStore([primitivePart] as const);
@@ -216,6 +433,33 @@ describe('part', () => {
       thunk(store.dispatch, store.getState);
 
       expect(store.dispatch).toHaveBeenCalledWith(primitivePart('next value'));
+    });
+
+    it('should have an updater that allows for dispatching multiple actions', () => {
+      const primitivePart = part('primitive', 'value');
+      const otherPart = part('other', 123);
+      const store = createStore([primitivePart, otherPart] as const);
+
+      const primitiveProxy = part(
+        [primitivePart],
+        (primitive) => primitive,
+        (dispatch, _getState, nextValue) => {
+          dispatch(primitivePart(nextValue));
+          dispatch(otherPart(0));
+        }
+      );
+
+      const thunk = primitiveProxy.update('next value');
+
+      expect(thunk).toBeInstanceOf(Function);
+
+      thunk(store.dispatch, store.getState);
+
+      expect(store.dispatch).toHaveBeenNthCalledWith(
+        1,
+        primitivePart('next value')
+      );
+      expect(store.dispatch).toHaveBeenNthCalledWith(2, otherPart(0));
     });
   });
 });
