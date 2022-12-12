@@ -1,24 +1,19 @@
 import {
-  COMPOSED_PART,
   PART,
   PROXY_PART,
   SELECTABLE_PART,
   SELECT_PART,
   STATEFUL_PART,
   UPDATEABLE_PART,
-  UPDATE_PART,
 } from './flags';
 
 import type {
-  AnyComposedPart,
-  AnyPart,
   AnyProxyPart,
   AnySelectablePart,
   AnySelector,
   AnySelectPart,
   AnyStatefulPart,
   AnyUpdateablePart,
-  AnyUpdatePart,
   AnyUpdater,
   BoundProxyPartConfig,
   BoundSelectPartConfig,

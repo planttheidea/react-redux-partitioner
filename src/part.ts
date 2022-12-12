@@ -535,7 +535,7 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
 /**
  * Creates a Part for use in Redux state.
  */
-export function part<Name extends string, State>(
+export function part<Name extends string>(
   name: Name,
   initialState: []
 ): PrimitivePart<Name, any[]>;

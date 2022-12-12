@@ -1,6 +1,6 @@
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import { noop, updateUniqueList } from './utils';
-import { isPartAction, isSelectablePart, isStatefulPart } from './validate';
+import { isPartAction, isSelectablePart } from './validate';
 
 import type { PreloadedState, Reducer } from 'redux';
 import type {
@@ -34,15 +34,15 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
         [Listener[] | null, Listener[]]
       >;
 
+      const batch = notifier || ((notify: Notify) => notify());
       const store = createStore(reducer, preloadedState);
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
 
-      let batch = notifier || ((notify: Notify) => notify());
       let notifyPartsQueue: AnySelectablePart[] = [];
       let storeListeners: Listener[] | null = [];
       let nextStoreListeners = storeListeners!;
-      let version: number = 0;
+      let version = 0;
 
       /**
        * Add the Part id as a unique entry to the queue to be notified, ensuring that any dependents
@@ -153,7 +153,7 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
       }
 
       function queuePartsToNotify(part: AnyStatefulPart): AnyStatefulPart[] {
-        let descendantParts: AnyStatefulPart[] = [];
+        const descendantParts: AnyStatefulPart[] = [];
 
         for (let index = 0; index < part.c.length; ++index) {
           queuePartsToNotify(part.c[index]);
@@ -225,9 +225,9 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
       ) {
         const partListeners = partListenerMap[part.id];
 
-        let [currentPartListeners, nextPartListeners] = partListeners;
+        let [, nextPartListeners] = partListeners;
 
-        if (nextPartListeners === currentPartListeners) {
+        if (nextPartListeners === partListeners[0]) {
           nextPartListeners = partListeners[1] = nextPartListeners.slice(0);
         }
 
