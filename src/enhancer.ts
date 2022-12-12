@@ -1,6 +1,6 @@
 import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import { noop, updateUniqueList } from './utils';
-import { isPartAction, isSelectablePart } from './validate';
+import { isPartAction, isSelectablePart, isStatefulPart } from './validate';
 
 import type { PreloadedState, Reducer } from 'redux';
 import type {
@@ -66,24 +66,26 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
       }
 
       function dispatch(action: any) {
-        if (isPartAction(action)) {
-          const id = action.$$part;
-          const part = partMap[id];
-
-          if (!part) {
-            throw new Error(
-              `Part with id ${id} not found. Is it included in this store?`
-            );
-          }
-
-          updateUniqueList(notifyPartsQueue, part);
-        }
-
         const prev = originalGetState();
         const result = originalDispatch(action);
         const next = originalGetState();
 
         if (prev !== next) {
+          if (isPartAction(action)) {
+            const id = action.$$part;
+            const part = partMap[id];
+
+            if (!part) {
+              throw new Error(
+                `Part with id ${id} not found. Is it included in this store?`
+              );
+            }
+
+            // Only queue the part notification if state has changed, otherwise
+            // it will cause unnecessary work.
+            queuePartsToNotify(part);
+          }
+
           version++;
           notify();
         }
@@ -148,6 +150,18 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
             listeners[index]();
           }
         }
+      }
+
+      function queuePartsToNotify(part: AnyStatefulPart): AnyStatefulPart[] {
+        let descendantParts: AnyStatefulPart[] = [];
+
+        for (let index = 0; index < part.c.length; ++index) {
+          queuePartsToNotify(part.c[index]);
+        }
+
+        updateUniqueList(notifyPartsQueue, part);
+
+        return descendantParts;
       }
 
       function subscribe(listener: Listener): Unsubscribe {

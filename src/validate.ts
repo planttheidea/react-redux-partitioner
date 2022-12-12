@@ -63,14 +63,6 @@ export function isComposedConfig(
   return typeof value === 'object' && value !== null && 'parts' in value;
 }
 
-export function isComposedPart(value: any): value is AnyComposedPart {
-  return !!(value && value.f & COMPOSED_PART);
-}
-
-export function isPart(value: any): value is AnyPart {
-  return typeof value === 'function' && !!(value.f & PART);
-}
-
 export function isPartAction(value: any): value is PartAction {
   return (
     typeof value === 'object' &&
@@ -93,6 +85,10 @@ export function isProxyPart(value: any): value is AnyProxyPart {
   return !!(value && value.f & PROXY_PART);
 }
 
+export function isSelectPart(value: any): value is AnySelectPart {
+  return !!(value && value.f & SELECT_PART);
+}
+
 export function isSelectablePart(value: any): value is AnySelectablePart {
   return !!(value && value.f & SELECTABLE_PART);
 }
@@ -101,12 +97,8 @@ export function isSelectablePartsList(value: any): value is AnyStatefulPart[] {
   return Array.isArray(value) && isSelectablePart(value[0]);
 }
 
-export function isSelectPart(value: any): value is AnySelectPart {
-  return !!(value && value.f & SELECT_PART);
-}
-
 export function isSelector(value: any): value is AnySelector {
-  return typeof value === 'function';
+  return typeof value === 'function' && !(value.f & PART);
 }
 
 export function isStatefulPart(value: any): value is AnyStatefulPart {
@@ -148,12 +140,9 @@ export function isUpdateConfig(
     typeof value === 'object' &&
     value !== null &&
     'set' in value &&
-    !('get' in value)
+    !('get' in value) &&
+    !('parts' in value)
   );
-}
-
-export function isUpdatePart(value: any): value is AnyUpdatePart {
-  return !!(value && value.f & UPDATE_PART);
 }
 
 export function isUpdateablePart(value: any): value is AnyUpdateablePart {
@@ -161,5 +150,5 @@ export function isUpdateablePart(value: any): value is AnyUpdateablePart {
 }
 
 export function isUpdater(value: any): value is AnyUpdater {
-  return typeof value === 'function';
+  return typeof value === 'function' && !(value.f & PART);
 }

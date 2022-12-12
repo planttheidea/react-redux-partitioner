@@ -37,7 +37,10 @@ export function usePartitionerContext<
   ) as ReactReduxPartitionerContextType<DispatchableAction, State>;
 
   if (!context) {
-    throw new Error('boom');
+    throw new Error(
+      'The context required for `react-redux-partitioner` does not exist. ' +
+        'Have you wrapped the React tree in a `Provider`?'
+    );
   }
 
   return context;

@@ -1,0 +1,9 @@
+__tests__
+DEV_ONLY
+build
+coverage
+.gitignore
+jest.config.jest
+tsconfig.json
+*.lock
+*.log
