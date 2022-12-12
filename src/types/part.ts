@@ -49,10 +49,7 @@ export type Set<State> = (
   nextState: State | FunctionalUpdate<State>
 ) => ReturnType<Dispatch<PartAction<State>>>;
 
-export interface BasePartConfig {}
-
-export interface StatefulPartConfig<Name extends string>
-  extends BasePartConfig {
+export interface StatefulPartConfig<Name extends string> {
   name: Name;
 }
 
@@ -227,16 +224,15 @@ export type SelectPartArgs<Parts extends Tuple<AnySelectablePart>> =
 export interface BoundSelectPartConfig<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>
-> extends BasePartConfig {
+> {
   get: Selector;
-  isEqual?: IsEqual;
+  isEqual?: IsEqual<ReturnType<Selector>>;
   parts: Parts;
 }
 
-export interface UnboundSelectPartConfig<Selector extends AnyGenericSelector>
-  extends BasePartConfig {
+export interface UnboundSelectPartConfig<Selector extends AnyGenericSelector> {
   get: Selector;
-  isEqual?: IsEqual;
+  isEqual?: IsEqual<ReturnType<Selector>>;
   parts?: never;
 }
 
@@ -305,8 +301,7 @@ export type UpdatePartArgs<Updater extends AnyUpdater> = Updater extends (
   ? Rest
   : never;
 
-export interface UpdatePartConfig<Updater extends AnyUpdater>
-  extends BasePartConfig {
+export interface UpdatePartConfig<Updater extends AnyUpdater> {
   set: Updater;
 }
 
@@ -370,9 +365,9 @@ export interface BoundProxyPartConfig<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>,
   Updater extends AnyUpdater
-> extends BasePartConfig {
+> {
   get: Selector;
-  isEqual?: IsEqual;
+  isEqual?: IsEqual<ReturnType<Selector>>;
   parts: Parts;
   set: Updater;
 }
@@ -380,9 +375,9 @@ export interface BoundProxyPartConfig<
 export interface UnboundProxyPartConfig<
   Selector extends AnyGenericSelector,
   Updater extends AnyUpdater
-> extends BasePartConfig {
+> {
   get: Selector;
-  isEqual?: IsEqual;
+  isEqual?: IsEqual<ReturnType<Selector>>;
   part?: never;
   set: Updater;
 }

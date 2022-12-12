@@ -7,7 +7,7 @@ describe('context', () => {
   const primitivePart = part('primitive', 'value');
 
   it('should provide the value in context', async () => {
-    const store = createStore([primitivePart] as const);
+    const store = createStore({ parts: [primitivePart] as const });
 
     let resolveTest: () => void;
 

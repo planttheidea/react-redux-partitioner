@@ -73,11 +73,3 @@ export function getSuspensePromiseCacheEntry<Result>(
 ): SuspensePromiseCacheEntry<Result> | undefined {
   return CACHE.get(promise) as SuspensePromiseCacheEntry<Result>;
 }
-
-export function isSuspensePromiseCanceled<Result>(
-  promise: Promise<Result>
-): boolean {
-  const entry = CACHE.get(promise);
-
-  return !!entry && entry.s !== 'canceled';
-}

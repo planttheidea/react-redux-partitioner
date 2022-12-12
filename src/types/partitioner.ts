@@ -1,12 +1,12 @@
-import type { AnyAction, Reducer, ReducersMapObject } from 'redux';
-import { Enhancer } from './enhancer';
+import type { Action, AnyAction, Reducer, ReducersMapObject } from 'redux';
+import type { Enhancer } from './enhancer';
 import type { AnyStatefulPart, CombinedPartsState, PartId } from './part';
 import type { Notifier } from './subscription';
 
 export interface PartitionerOptions<
   Parts extends readonly AnyStatefulPart[],
-  OtherReducerState,
-  DispatchableAction extends AnyAction
+  OtherReducerState = unknown,
+  DispatchableAction extends Action = AnyAction
 > {
   /**
    * Custom notifier, which receives the method by which state update subscribers are notified

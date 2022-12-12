@@ -6,7 +6,7 @@ describe('enhancer', () => {
     it('should enhance the store with the properties needed', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       expect(typeof store.dispatch).toBe('function');
       expect(typeof store.getState).toBe('function');
@@ -19,7 +19,7 @@ describe('enhancer', () => {
     it('should return the complete state object when no parameter is passed', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       expect(store.getState()).toEqual({
         other: 123,
@@ -38,7 +38,7 @@ describe('enhancer', () => {
     it('should return the state for the specific part when passed as a parameter', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       expect(store.getState(primitivePart)).toEqual('value');
       expect(store.getState(otherPart)).toEqual(123);
@@ -55,7 +55,7 @@ describe('enhancer', () => {
     it('should allow subscription to changes in all state', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const listener = jest.fn();
       const unsubscribe = store.subscribe(listener);
@@ -83,7 +83,7 @@ describe('enhancer', () => {
     it('should allow subscription to state changes for a specific part', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const listener = jest.fn();
       const unsubscribe = store.subscribeToPart(primitivePart, listener);
@@ -111,7 +111,7 @@ describe('enhancer', () => {
     it('should ignore changes to other parts', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const listener = jest.fn();
 
@@ -130,7 +130,7 @@ describe('enhancer', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
       const ownerPart = part('owner', [primitivePart]);
-      const store = createStore([ownerPart, otherPart] as const);
+      const store = createStore({ parts: [ownerPart, otherPart] as const });
 
       const listener = jest.fn();
       const unsubscribe = store.subscribeToPart(primitivePart, listener);
@@ -165,7 +165,7 @@ describe('enhancer', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
       const ownerPart = part('owner', [primitivePart]);
-      const store = createStore([ownerPart, otherPart] as const);
+      const store = createStore({ parts: [ownerPart, otherPart] as const });
 
       const listener = jest.fn();
       const unsubscribe = store.subscribeToPart(ownerPart, listener);
@@ -197,7 +197,7 @@ describe('enhancer', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
       const ownerPart = part('owner', [primitivePart]);
-      const store = createStore([ownerPart, otherPart] as const);
+      const store = createStore({ parts: [ownerPart, otherPart] as const });
 
       const selectBoth = part(
         [primitivePart, otherPart],
@@ -257,7 +257,7 @@ describe('enhancer', () => {
     it('should notify the entire descendancy tree', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const uppercase = part([primitivePart], (primitive) =>
         primitive.toUpperCase()
@@ -335,6 +335,67 @@ describe('enhancer', () => {
       expect(combinedListener).toHaveBeenCalledTimes(1);
       expect(splitListener).not.toHaveBeenCalled();
       expect(halvedListener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('custom notifier', () => {
+    function debounce<Fn extends (notify: () => void) => void>(
+      fn: Fn,
+      ms = 0
+    ): Fn {
+      let id: ReturnType<typeof setTimeout> | null = null;
+
+      return function (notify: () => void): void {
+        if (id) {
+          clearTimeout(id);
+        }
+
+        id = setTimeout(() => {
+          fn(notify);
+          id = null;
+        }, ms);
+      } as Fn;
+    }
+    const debouncedNotify = debounce((notify) => notify(), 0);
+
+    it('should batch updates to state', async () => {
+      const primitivePart = part('primitive', 'value');
+      const otherPart = part('other', 123);
+      const store = createStore({
+        parts: [primitivePart, otherPart] as const,
+        notifier: debouncedNotify,
+      });
+
+      const listener = jest.fn();
+      store.subscribe(listener);
+
+      store.dispatch(primitivePart('next value'));
+      store.dispatch(otherPart(234));
+
+      expect(listener).not.toHaveBeenCalled();
+
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it('should batch updates to parts', async () => {
+      const primitivePart = part('primitive', 'value');
+      const otherPart = part('other', 123);
+      const store = createStore({
+        parts: [primitivePart, otherPart] as const,
+        notifier: debouncedNotify,
+      });
+
+      const listener = jest.fn();
+      store.subscribeToPart(primitivePart, listener);
+
+      store.dispatch(primitivePart('next value'));
+      store.dispatch(primitivePart('third value'));
+
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      expect(listener).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1,7 +1,7 @@
 import { Dispatch } from 'redux';
 import { GetState } from './store';
 
-export type IsEqual = (a: any, b: any) => boolean;
+export type IsEqual<Type = any> = (a: Type, b: Type) => boolean;
 
 export type FunctionalUpdate<State> = (prev: State) => State;
 

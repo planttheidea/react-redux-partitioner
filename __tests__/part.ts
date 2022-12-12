@@ -16,14 +16,14 @@ describe('part', () => {
 
     it('should get the correct value from state', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       expect(store.getState(primitivePart)).toBe('value');
     });
 
     it('should derive the correct next state based on the action', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       store.dispatch(primitivePart('next value'));
 
@@ -46,7 +46,7 @@ describe('part', () => {
     it('should get the correct value from state', () => {
       const primitivePart = part('primitive', 'value');
       const composedPart = part('composed', [primitivePart]);
-      const store = createStore([composedPart] as const);
+      const store = createStore({ parts: [composedPart] as const });
 
       expect(store.getState(composedPart)).toEqual({ primitive: 'value' });
     });
@@ -54,7 +54,7 @@ describe('part', () => {
     it('should get the correct value from state of a chile primitive', () => {
       const primitivePart = part('primitive', 'value');
       const composedPart = part('composed', [primitivePart]);
-      const store = createStore([composedPart] as const);
+      const store = createStore({ parts: [composedPart] as const });
 
       expect(store.getState(primitivePart)).toEqual('value');
     });
@@ -62,7 +62,7 @@ describe('part', () => {
     it('should derive the correct next state based on the action', () => {
       const primitivePart = part('primitive', 'value');
       const composedPart = part('composed', [primitivePart]);
-      const store = createStore([composedPart] as const);
+      const store = createStore({ parts: [composedPart] as const });
 
       store.dispatch(composedPart({ primitive: 'next value' }));
 
@@ -72,7 +72,7 @@ describe('part', () => {
     it('should derive the correct next state based on the action of a child primitive', () => {
       const primitivePart = part('primitive', 'value');
       const composedPart = part('composed', [primitivePart]);
-      const store = createStore([composedPart] as const);
+      const store = createStore({ parts: [composedPart] as const });
 
       store.dispatch(primitivePart('next value'));
 
@@ -86,7 +86,7 @@ describe('part', () => {
       const dPart = part('d', [cPart]);
       const ePart = part('e', [dPart]);
       const fPart = part('f', [ePart]);
-      const store = createStore([fPart] as const);
+      const store = createStore({ parts: [fPart] as const });
 
       store.dispatch(aPart('next value'));
 
@@ -109,7 +109,7 @@ describe('part', () => {
   describe('Select', () => {
     it('should be a selector for the part', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part([primitivePart], (primitive) =>
         primitive.toUpperCase()
@@ -120,7 +120,7 @@ describe('part', () => {
 
     it('should be a general selector, if no parts are provided', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part((getState) =>
         getState(primitivePart).toUpperCase()
@@ -131,7 +131,7 @@ describe('part', () => {
 
     it('should support nesting of selectors', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part([primitivePart], (primitive) =>
         primitive.toUpperCase()
@@ -157,7 +157,7 @@ describe('part', () => {
 
     it('should support async selectors for the part', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part(
         [primitivePart],
@@ -169,7 +169,7 @@ describe('part', () => {
 
     it('should be a general async selector, if no parts are provided', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part(async (getState) =>
         getState(primitivePart).toUpperCase()
@@ -180,7 +180,7 @@ describe('part', () => {
 
     it('should support nesting of selectors, both async and sync', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const selectUppercasePrimitive = part(
         [primitivePart],
@@ -211,7 +211,7 @@ describe('part', () => {
   describe('Update', () => {
     it('should be a thunk action creator', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const primitiveUpdate = part(null, (dispatch, _getState, nextValue) =>
         dispatch(primitivePart(nextValue))
@@ -229,7 +229,7 @@ describe('part', () => {
     it('should allow for dispatching multiple actions', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const primitiveUpdate = part(null, (dispatch, _getState, nextValue) => {
         dispatch(primitivePart(nextValue));
@@ -253,7 +253,7 @@ describe('part', () => {
   describe('Proxy', () => {
     it('should have a selector for the part', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const uppercasePrimitiveProxy = part(
         [primitivePart],
@@ -266,7 +266,7 @@ describe('part', () => {
 
     it('should have a general selector, if no parts are provided', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const uppercasePrimitiveProxy = part(
         (getState) => getState(primitivePart).toUpperCase(),
@@ -278,7 +278,7 @@ describe('part', () => {
 
     it('should support nesting of selectors', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const setPrimitive = (
         dispatch: Dispatch,
@@ -317,7 +317,7 @@ describe('part', () => {
 
     it('should support async selectors for the part', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const uppercasePrimitiveProxy = part(
         [primitivePart],
@@ -332,7 +332,7 @@ describe('part', () => {
 
     it('should be a general async selector, if no parts are provided', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const uppercasePrimitiveProxy = part(
         async (getState) => getState(primitivePart).toUpperCase(),
@@ -346,7 +346,7 @@ describe('part', () => {
 
     it('should support nesting of selectors, both async and sync', async () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const setPrimitive = (
         dispatch: Dispatch,
@@ -391,7 +391,7 @@ describe('part', () => {
 
     it('should have an updater', () => {
       const primitivePart = part('primitive', 'value');
-      const store = createStore([primitivePart] as const);
+      const store = createStore({ parts: [primitivePart] as const });
 
       const primitiveProxy = part(
         [primitivePart],
@@ -411,7 +411,7 @@ describe('part', () => {
     it('should have an updater that allows for dispatching multiple actions', () => {
       const primitivePart = part('primitive', 'value');
       const otherPart = part('other', 123);
-      const store = createStore([primitivePart, otherPart] as const);
+      const store = createStore({ parts: [primitivePart, otherPart] as const });
 
       const primitiveProxy = part(
         [primitivePart],

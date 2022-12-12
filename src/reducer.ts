@@ -38,7 +38,7 @@ export function combineOtherReducers<
   const length = finalReducerKeys.length;
 
   return function reducer(
-    state: OtherReducerState,
+    state: OtherReducerState = {} as OtherReducerState,
     action: DispatchableAction
   ) {
     const nextState = {} as OtherReducerState;
@@ -123,9 +123,16 @@ export function createReducer<
   }
 
   return function reducer(
-    state: CombinedState = getInitialState(parts) as CombinedState,
+    state: CombinedState,
     action: DispatchableAction
   ): CombinedState {
+    if (state === undefined) {
+      return {
+        ...getInitialState(parts),
+        ...additionalReducer(undefined as OtherReducerState, action),
+      };
+    }
+
     if (isPartAction(action)) {
       return partsReducer(state, action);
     }

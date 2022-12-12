@@ -1,16 +1,25 @@
 import { configureStore, type Dispatch } from '@reduxjs/toolkit';
 import {
   type AnyStatefulPart,
+  type PartitionerOptions,
+  type GetState,
   type Store,
-  part,
   createPartitioner,
-  GetState,
 } from '../../src';
 
-export function createStore<Parts extends readonly AnyStatefulPart[]>(
-  parts: Parts
-): Store {
-  const { enhancer, reducer } = createPartitioner({ parts });
+export function createStore<
+  Parts extends readonly AnyStatefulPart[],
+  OtherReducerState
+>({
+  parts,
+  otherReducer,
+  notifier,
+}: PartitionerOptions<Parts, OtherReducerState>): Store {
+  const { enhancer, reducer } = createPartitioner({
+    notifier,
+    otherReducer,
+    parts,
+  });
 
   const store = configureStore({
     reducer,

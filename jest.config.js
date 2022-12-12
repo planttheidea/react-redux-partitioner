@@ -1,5 +1,5 @@
 export default {
-  coveragePathIgnorePatterns: ['node_modules', 'src/types.ts'],
+  coveragePathIgnorePatterns: ['node_modules', '/__utils__/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   roots: ['<rootDir>'],
   testEnvironment: 'jsdom',
