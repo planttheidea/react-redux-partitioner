@@ -1,6 +1,5 @@
 import { ReduxState } from '.';
-import { part, usePart } from '../../src';
-// import { part } from '../../src';
+import { part } from '../../src';
 
 export const todosPart = part('todos', [] as string[]);
 export const titlePart = part({

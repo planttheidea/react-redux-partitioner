@@ -1,4 +1,4 @@
-import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import {
   applyMiddleware,
   compose,
@@ -15,7 +15,7 @@ import {
 
 import { storeParts } from './parts';
 
-const legacy = (state: string = 'legacy', action: AnyAction) => {
+const legacy = (state = 'legacy', action: AnyAction) => {
   return action.type === 'LEGACY' ? 'modern' : state;
 };
 

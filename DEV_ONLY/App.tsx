@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   // store,
   storeConfigured as store,
@@ -226,7 +226,8 @@ function UserNameStoreSelector() {
 }
 
 export default function App() {
-  const [userVisible, setUserVisible] = useState(true);
+  const [userVisible] = useState(true);
+  // const [userVisible, setUserVisible] = useState(true);
 
   // useAfterTimeout(() => setUserVisible(false), 1000);
 

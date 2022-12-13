@@ -1,4 +1,3 @@
-import type { Dispatch } from 'redux';
 import type { IgnoreAllDependencies } from '../constants';
 import type {
   COMPOSED_PART,
@@ -9,7 +8,7 @@ import type {
   STATEFUL_PART,
   UPDATE_PART,
 } from '../flags';
-import type { GetState, PartAction } from './store';
+import type { Dispatch, GetState, PartAction } from './store';
 import type {
   FunctionalUpdate,
   IsEqual,

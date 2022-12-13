@@ -1,5 +1,4 @@
-import { Dispatch } from 'redux';
-import { GetState } from './store';
+import { Dispatch, GetState } from './store';
 
 export type IsEqual<Type = any> = (a: Type, b: Type) => boolean;
 

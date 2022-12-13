@@ -5,10 +5,11 @@ import { getSuspensePromiseCacheEntry } from './suspensePromise';
 import { is, noop } from './utils';
 import { isPromise, isSelectablePart, isUpdateablePart } from './validate';
 
-import type { Action, AnyAction, Dispatch } from 'redux';
+import type { Action, AnyAction } from 'redux';
 import type {
   AnyPart,
   AnyPrimitivePart,
+  Dispatch,
   Listener,
   UsePartPair,
   UsePartValue,

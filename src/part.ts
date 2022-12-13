@@ -36,7 +36,7 @@ import {
   isPromise,
 } from './validate';
 
-import type { AnyAction, Dispatch, Reducer } from 'redux';
+import type { AnyAction, Reducer } from 'redux';
 import type {
   AnyGenericSelector,
   AnyGetValue,
@@ -51,6 +51,7 @@ import type {
   CombinedPartsState,
   ComposedPart,
   ComposedPartConfig,
+  Dispatch,
   FunctionalUpdate,
   Get,
   GetState,
