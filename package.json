@@ -85,6 +85,8 @@
     "dist": "npm run clean && npm run build",
     "lint": "NODE_ENV=test eslint src",
     "lint:fix": "NODE_ENV=test eslint src --fix",
+    "release": "release-it",
+    "release:beta": "release-it --config=.release-it.beta.json",
     "release:scripts": "npm run lint && npm run typecheck && npm run test && npm run dist",
     "start": "npm run dev",
     "test": "NODE_ENV=test NODE_PATH=. jest",
