@@ -95,5 +95,5 @@
     "typecheck": "tsc --noEmit --p build/tsconfig/base.json"
   },
   "type": "module",
-  "version": "3.0.0"
+  "version": "0.0.0"
 }
