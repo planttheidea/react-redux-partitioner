@@ -41,7 +41,7 @@ export type Store<
   PartsStoreExtensions<State, DispatchableAction>;
 
 export interface PartsStoreExtensions<
-  State extends AnyPartsState = any,
+  State = any,
   DispatchableAction extends Action = AnyAction
 > {
   dispatch: Dispatch<DispatchableAction>;

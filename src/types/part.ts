@@ -81,10 +81,10 @@ export interface BasePart {
   f: typeof PART;
 }
 
-export type GetValueUpdater<State, GetValue extends AnyGetValue<State>> = (
+export type GetValueUpdater<State, Args extends any[]> = (
   dispatch: Dispatch,
   getState: GetState<State>,
-  ...args: Parameters<GetValue>
+  ...args: Args
 ) => PartAction<State>;
 
 export interface StatefulPartUpdater<State> {
@@ -92,9 +92,7 @@ export interface StatefulPartUpdater<State> {
    * Creates a dedicated action creator for updating the value in state
    * for this part. Allows for declarative action types.
    */
-  (type: string): UpdatePart<
-    GetValueUpdater<State, (nextState: State) => State>
-  >;
+  (type: string): UpdatePart<GetValueUpdater<State, [State]>>;
   /**
    * Creates a dedicated action creator for updating the value in state
    * for this part. Allows for declarative action types, as well as custom
@@ -103,7 +101,11 @@ export interface StatefulPartUpdater<State> {
   <GetValue extends AnyGetValue<State>>(
     type: string,
     getValue: GetValue
-  ): UpdatePart<GetValueUpdater<State, GetValue>>;
+  ): UpdatePart<
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Earlier versions of TS don't read this well.
+    GetValueUpdater<State, Parameters<GetValue>>
+  >;
 }
 
 export interface BaseStatefulPart<Name extends string, State> extends BasePart {
