@@ -4,13 +4,7 @@ import type {
   Dispatch as BaseDispatch,
   Store as ReduxStore,
 } from 'redux';
-import type {
-  AnyPart,
-  AnyPartsState,
-  AnySelectablePart,
-  PartId,
-  PartState,
-} from './part';
+import type { AnyPart, AnySelectablePart, PartId, PartState } from './part';
 import type { Listener, Unsubscribe } from './subscription';
 import type { Thunk } from './utils';
 
