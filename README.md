@@ -1,36 +1,94 @@
 # react-redux-partitioner
 
-A more pleasant and performant manager of Redux state for React apps.
+A simple and performant way to manage Redux state.
 
 - [react-redux-partitioner](#react-redux-partitioner)
   - [Premise](#premise)
-  - [Setup](#setup)
   - [Usage example](#usage-example)
+  - [Store setup](#store-setup)
   - [Hooks](#hooks)
     - [`usePart`](#usepart)
     - [`usePartValue`](#usepartvalue)
     - [`usePartUpdate`](#usepartupdate)
   - [Part types](#part-types)
     - [Stateful Parts](#stateful-parts)
+      - [Action creators](#action-creators)
       - [Stateful Update Parts](#stateful-update-parts)
     - [Select Parts](#select-parts)
+      - [Non-Part selectors](#non-part-selectors)
       - [Async selectors](#async-selectors)
     - [Update Parts](#update-parts)
     - [Proxy Parts](#proxy-parts)
+      - [Non-Part proxies](#non-part-proxies)
+  - [Use with other reducers](#use-with-other-reducers)
   - [Store enhancements](#store-enhancements)
+    - [Immutable updates](#immutable-updates)
     - [`getState`](#getstate)
     - [`subscribeToPart`](#subscribetopart)
     - [Batched notification of subscribers](#batched-notification-of-subscribers)
 
 ## Premise
 
-[Redux](https://redux.js.org/) is a very popular global state manager, which is extremely powerful and useful in a variety of use-cases. However, its lack of opinionation often requires convention-driven development, and due to its top-down update model, performance can degrade as the size of state grows because all components are listening for all state changes and doing work to determine if rendering needs to occur.
+[Redux](https://redux.js.org/) is a popular global state manager that is extremely powerful and useful in a variety of use-cases. However, its lack of opinionation often requires teams to develop or use conventions to streamline additions, which results in a lot of "reinventing the wheel" or adopting a common community convention like [Redux Toolkit](https://redux-toolkit.js.org/). Also, due to its top-down update model, performance can degrade as the size of state grows because all components are listening for all state changes and doing work to determine if rendering needs to occur.
 
-Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state, and the convention that aligns with the React `useState` convention is familiar and approachable.
+Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Creation of these "atoms" is simple and straightforward, and unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state. The convention that aligns with the React `useState` convention, which is familiar and approachable. However, these managers are very difficult (in some cases, impossible) to work with outside the scope of React, and they lack a centralized pipeline that help with edge-case requirements.
 
-`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Updates only occur for parts of state that change, avoiding excess work and staying performant at scale. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures.
+`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Components only perform work when the specific part of state they care about change, which improves performance (the larger the scale, the bigger the gains). All state updates go through the Redux dispatch pipeline, which allows for the full power of Redux to be used. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures.
 
-## Setup
+## Usage example
+
+```tsx
+import { usePart } from 'react-redux-partitioner';
+import { descriptionPart, titlePart, todosPart } from './store';
+
+function Title() {
+  const [title] = usePart(titlePart);
+
+  return <h1>{title}</h1>;
+}
+
+function Description() {
+  const [description] = usePart(descriptionPart);
+
+  return <h2>{description}</h2>;
+}
+
+function TodoList() {
+  const [todos, updateTodos] = usePart(todosPart);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleClick = useCallback(() => {
+    updateTodos((todos) => [
+      ...todos,
+      { id: todos.length, value: inputRef.current!.value },
+    ]);
+    inputRef.current!.value = '';
+  }, [updateTodos]);
+
+  return (
+    <div>
+      <aside>
+        <input ref={inputRef} />
+        <button onClick={handleClick}>Add todo</button>
+      </aside>
+
+      <br />
+
+      <section>
+        {todos.map((todo) => (
+          <div key={todo.id} data-id={todo.id}>
+            {todo.value}
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
+```
+
+`usePart` provides the standard `useState` interface for both reads and writes, but there are [other hooks](#hooks) for more targeted use-cases as needed.
+
+## Store setup
 
 ```tsx
 // create the parts of state involved
@@ -59,72 +117,21 @@ const store = configureStore({ reducer, enhancers: [enhancer] });
 
 The enhancer will provide some extra goodies on the `store` object which are detailed in [Store enhancements](#store-enhancements), but will also set up the targeted update infrastructure for components.
 
-## Usage example
-
-```tsx
-import { usePart } from 'react-redux-partitioner';
-import { descriptionPart, titlePart, todosPart } from './store';
-
-function Title() {
-  const [title] = usePart(titlePart);
-
-  return <h1>{title}</h1>;
-}
-
-function Description() {
-  const [description] = usePart(descriptionPart);
-
-  return <h2>{description}</h2>;
-}
-
-function TodoList() {
-  const [todos, setTodos] = usePart(todosPart);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleClick = useCallback(() => {
-    setTodos((todos) => [
-      ...todos,
-      { id: todos.length, value: inputRef.current!.value },
-    ]);
-    inputRef.current!.value = '';
-  }, [setTodos]);
-
-  return (
-    <div>
-      <aside>
-        <input ref={inputRef} />
-        <button onClick={handleClick}>Add todo</button>
-      </aside>
-
-      <br />
-
-      <section>
-        {todos.map((todo) => (
-          <div key={todo.id} data-id={todo.id}>
-            {todo.value}
-          </div>
-        ))}
-      </section>
-    </div>
-  );
-}
-```
-
 ## Hooks
 
 ### `usePart`
 
-Returns a `useState`-like tuple where the first item is the value of the Part, and the second is the update method for the Part.
+Returns a `useState`-like Tuple, where the first item is the value of the Part, and the second is the update method for the Part.
 
 ```ts
-const [todos, setTodos] = usePart(todosPart);
+const [todos, updateTodos] = usePart(todosPart);
 ```
 
-Please note that when using [Select Parts](#select-parts) or [Update Parts](#update-parts), only the items associated with those parts will be available. This means that for Select parts the update method will be a no-op, and for Update parts the value will be `undefined`.
+Please note that when using [Select Parts](#select-parts) or [Update Parts](#update-parts), only the items associated with those Parts will be available. This means that for Select Parts the update method will be a no-op, and for Update Parts the value will be `undefined`.
 
 ### `usePartValue`
 
-Returns the value of the Part only. This is a convenience hook for when updates are not needed.
+Returns the value of the Part only. This is a convenience hook for when performing updates within the scope of the component is not required.
 
 ```ts
 const todos = usePartValue(todosPart);
@@ -134,10 +141,10 @@ Please note that when using [Update Parts](#update-parts) this will return `unde
 
 ### `usePartUpdate`
 
-Returns the update method of the Part only. This is a convenience hook for when reading the values are not needed, and is considered a performance benefit because changes to the Part state will not cause additional rerenders as it would when using `usePart`.
+Returns the update method of the Part only. This is a convenience hook for when reading the values within the scope of the component is not required. This is also considered a performance benefit, as changes to the Part value in state would cause additional re-renders with `usePart`, but would not with `usePartUpdate`.
 
 ```ts
-const setTodos = usePartUpdate(todosPart);
+const updateTodos = usePartUpdate(todosPart);
 ```
 
 Please note that when using [Select Parts](#select-parts) this will return a no-op method.
@@ -146,19 +153,19 @@ Please note that when using [Select Parts](#select-parts) this will return a no-
 
 ### Stateful Parts
 
-The most important Parts in your application! These are the values stored in Redux state, and the core driver of rendering changes.
+These are the values stored in Redux state, and the core driver of rendering changes.
 
 ```ts
-const statefulPart = part('key', 'initial value');
+const statefulPart = part('partName', 'initial value');
 ```
 
-This will create what is considered a "Primitive Part", in that it is the most granular Stateful Part stored. Applying the above to your store as-is would create a `key` property on the state object (`getState().key`). However, these can be composed into namespaces via composition:
+This will create what is considered a "Primitive Part", in that it is the most granular Stateful Part stored. Applying the above to your store would create a `partName` property on the state object (`getState().partName`). However, these can be composed into namespaces via composition if the second parameter is an array of Parts:
 
 ```ts
 const composedStatefulPart = part('namespace', [statefulPart]);
 ```
 
-This will mutate the parts passed to now be under a parent key, with the top-level namespace being the owner of all its primitive Parts. Therefore, if you wanted to access the Primitive Part above, it would now be `getState().namespace.key`. Subscription and access to the nested Primitive Parts remain unchanged, and this composition can be as deep as you wish.
+This will mutate the Parts passed to now be under a parent key, with the top-level `namespace` being the owner of all its primitive Parts. Therefore, if you wanted to access the Primitive Part above, it would now be `getState().namespace.partName`. Subscription and access to the nested Primitive Parts remain unchanged, and this composition can be as deep as you wish:
 
 ```ts
 const idPart = part('id', 1234);
@@ -168,21 +175,36 @@ const namePart = part('name', [firstNamePart, lastNamePart]);
 const userPart = part('user', [idPart, namePart]);
 ```
 
-Also, if you want to update the state of the Part outside the scope of a React component, the Parts returned are themselves action creators.
+#### Action creators
+
+If you want to update the state of the Part outside the scope of a React component, the Parts returned are action creators:
 
 ```ts
 store.dispatch(idPart(2345));
 ```
 
-This can come in handy when used in combination with other third-party libraries, such as `redux-saga` or `redux-thunk`. Also helpful for `redux-saga` is the fact that the `toString()` method on the part will return its action type, which allows for convenient use with utilities like `take`:
+This can come in handy when used in combination with other third-party libraries, such as [`redux-saga`](https://redux-saga.js.org/) or [thunks](https://redux.js.org/usage/writing-logic-thunks), or in the context of a [Redux middleware](https://redux.js.org/understanding/history-and-design/middleware). Also helpful is the fact that the `toString()` method on the part will return its action type. This allows for convenient use with utilities like `take` in `redux-saga`:
 
 ```ts
 yield takeLatest(idPart);
 ```
 
+Or when building non-Part action handlers for reducers, a la [`redux-actions`](https://redux-actions.js.org/api/handleaction#handleactionsreducermap-defaultstate):
+
+```ts
+const nonPartReducer = handleActions(
+  {
+    [userPart]: (_state, action) => ({
+      online: !!action.value?.id,
+    }),
+  },
+  { online: false }
+);
+```
+
 #### Stateful Update Parts
 
-In addition to the [Update Parts](#update-parts) that you can create manually, stateful components can create custom Update Parts for updating their values. This allows you to build action creators that are more flexible and declarative, or contain some business logic.
+Even though Stateful Parts are themselves [action creators](#action-creators), they have a fairly generic Redux action type applied (`UPDATE_${partName}`). If you follow the [Redux Style Guide](https://redux.js.org/style-guide/#model-actions-as-events-not-setters), then you may want to describe updates based on their context, or provide more convenient ones to reduce developer friction. This is available with the `update` method on the Part:
 
 ```ts
 const activePart = part('active', false);
@@ -195,11 +217,13 @@ const toggleActive = activePart.update(
 );
 ```
 
-These create custom action types, and can include methods to derive the next state value. In the above example `activatePart` / `deactivatePart` are hard-coding next state types, and in the case of `toggleActivePart` it is using curring to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`. However, this is very flexible:
+`part.update()` receives the custom `type` and optionally the method used to derive the next value, and return a custom [Update Part](#update-parts). In the above example, `activatePart` / `deactivatePart` are hard-coding next state types as `true` / `false`, and in the case of `toggleActivePart` it is using curring to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`.
+
+That said, the logic of these stateful updaters can be as complex as required:
 
 ```ts
 const userPart = part('user', [idPart, namePart]);
-const modifyUser = userPart.update(
+const modifyUserPart = userPart.update(
   'USER_MODIFIED',
   (nextId?: string, nextName?: string) => (prevUser) => {
     const { id: prevId, name: prevName } = prevUser;
@@ -224,43 +248,57 @@ const modifyUser = userPart.update(
 
 ### Select Parts
 
-Often an application leverages derived data, which is not stored persistently in state but is used for rendering data that combines or transforms that which is stored in state. For this, a select Part can be used:
+Often an application leverages derived data, which is not stored persistently in state but is used for rendering data that combines or transforms the data that is in state. For this, a Select Part can be used:
 
 ```ts
-const selectPriorityTodos = part([todosPart], (todos) =>
+const priorityTodosPart = part([todosPart], (todos) =>
   todos.filter((todo) => todo.value.endsWith('(P)'))
 );
 ```
 
-In this case, the selector will run every time `todos` change in state, and if a todo is added with a value of `(P)` on the end, it is considered priority. It then can be used in your components as needed:
+In this case, the selector will run every time `todosPart` updates. It then can be used in your components as needed:
 
 ```tsx
 function TodoList() {
-  const [todos, setTodos] = usePart(todosPart);
-  const priorityTodos = usePartValue(selectPriorityTodos);
+  const [todos, updateTodos] = usePart(todosPart);
+  const priorityTodos = usePartValue(priorityTodosPart);
   const [onlyPriority, setOnlyPriority] = useState(false);
 
   const todosListed = onlyPriority ? priorityTodos : todos;
 ```
 
-Notice above the [`usePartValue` hook](#usepartvalue) is used instead of `usePart`. While both will work the same, it is generally a good convention to use `usePartValue` with Select Parts since the update method cannot be used.
+Notice above the [`usePartValue` hook](#usepartvalue) is used instead of `usePart`. While both hooks will work, it is generally a good convention to use `usePartValue` with Select Parts since the update method cannot be used.
 
-You can also create a Select Part that is not based on any other Parts, but rather will execute on any state change.
+You can also call the selector outside the scope of a React tree:
 
 ```ts
-const selectPriorityTodos = part((todos) =>
+const priorityTodos = priorityTodosPart(store.getState);
+```
+
+Unlike traditional selectors which receive the state object as the first argument, selectors expect the `getState` method itself. Therefore, if you want to use this in combination with other utilities like `select` from [`redux-saga`](https://redux-saga.js.org/), you'll need to create a simple wrapper:
+
+```ts
+const priorityTodos = yield select(() => priorityTodosPart(store.getState));
+```
+
+#### Non-Part selectors
+
+You can also create a Select Part that is not based on any specific Parts, but rather will execute on any state change:
+
+```ts
+const priorityTodosPart = part((todos) =>
   todos.filter((todo) => todo.value.endsWith('(P)'))
 );
 ```
 
-This is mainly helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is usually only helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts. If you are exclusively using Parts for state, then you should prefer to pass the list of Part dependencies, as it will improve render performance.
 
 #### Async selectors
 
 Because applications often rely on asynchronous data, having a convenient mechanism to handle this asynchronous data can be helpful when rendering. As such, when the result of a selector, or any dependency for that selector, is async, a `Promise` will be returned from the selector.
 
 ```ts
-const selectTodos = usePart([idPart], async (getState) => {
+const remoteTodosPart = usePart([idPart], async (getState) => {
   const id = getState(idPart);
   const response = await fetch(`https://my.url.com/${id}`);
 
@@ -268,7 +306,7 @@ const selectTodos = usePart([idPart], async (getState) => {
 
   return todos;
 });
-const selectPriorityTodos = part([selectTodos], (todos) =>
+const priorityTodosPart = part([selectTodos], (todos) =>
   todos.filter((todo) => todo.value.endsWith('(P)'))
 );
 ```
@@ -277,8 +315,8 @@ This `Promise` result is supported by`React.Suspense` when used with `usePart` o
 
 ```tsx
 function Todos() {
-  const todos = usePartValue(selectTodos);
-  const priorityTodos = usePartValue(selectPriorityTodos);
+  const todos = usePartValue(remoteTodosPart);
+  const priorityTodos = usePartValue(priorityTodosPart);
   const [onlyPriority, setOnlyPriority] = useState(false);
 
   const todosListed = onlyPriority ? priorityTodos : todos;
@@ -300,7 +338,7 @@ Sometimes there is complex logic required for performing updates to multiple Par
 
 ```tsx
 const resetTodos = todosPart.update('RESET_TODOS', () => []);
-const resetApp = part(
+const resetAppPart = part(
   null,
   (dispatch, getState, nextTitle: string, nextDescription: string) => {
     if (nextTitle) {
@@ -316,42 +354,42 @@ const resetApp = part(
 );
 
 function Reset() {
-  const reset = usePartUpdate(resetApp);
+  const resetApp = usePartUpdate(resetAppPart);
 
   return (
-    <button onClick={() => reset('Next title', 'Next description')}>
+    <button onClick={() => resetApp('Next title', 'Next description')}>
       Reset App
     </button>
   );
 }
 ```
 
-Notice that `null` is passed to `part` as the first parameter; this identifies that there is no selector and therefore is an Update Part. Also, you can see that `dispatch` and `getState` are injected as the first two parameters to the method when used via `usePartUpdate`; this is because the Update Part works as a thunk:
+Notice that `null` is passed to `part` as the first parameter; this identifies that there is no selector and therefore is an Update Part (in comparison to a [Proxy Part](#proxy-parts), which receives both). Also, notice that `dispatch` and `getState` are injected as the first two parameters to the method when used via `usePartUpdate`. This is because the Update Part works as a [thunk](https://redux.js.org/usage/writing-logic-thunks):
 
 ```ts
-const updaterPart = part(null, (dispatch, _getState, nextValue: string) =>
-  dispatch(fooPart('bar'))
+const fooUpdatePart = part(null, (dispatch, _getState, nextValue: string) =>
+  dispatch(fooPart(nextValue))
 );
 // is functionallty equivalent to
-const updaterPart =
+const fooUpdatePart =
   (nextValue: string) => (dispatch: Dispatch, _getState: GetState) =>
     dispatch(fooPart(fooValue));
 ```
 
-This allows for convenient use both in and out of a hook context.
+This allows for convenient use both in and out of a hook context:
 
 ```ts
-store.dispatch(resetApp('Next title', 'Next description'));
+store.dispatch(resetAppPart('Next title', 'Next description'));
 ```
 
 Please note that if an `extraArgument` is provided to `redux-thunk`, it will not be available.
 
 ### Proxy Parts
 
-Combining the power of Select and Update Parts, Proxy Parts allow full manipulation of state without separate storage.
+Combining the power of [Select Parts](#select-parts) and [Update Parts](#update-parts), Proxy Parts allow full manipulation of state without separate storage.
 
 ```tsx
-const proxyName = part(
+const fullNamePart = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`,
   (dispatch, _, nextName: string) => {
@@ -363,23 +401,30 @@ const proxyName = part(
 );
 
 function Name() {
-  const [name, setName] = usePart(proxyName);
+  const [fullName, updateFullName] = usePart(fullNamePart);
 
   return (
     <div>
-      <span>{name}</span>
-      <button onClick={() => setName('Next Name')}>Set next name</button>
+      <span>{fullName}</span>
+      <button onClick={() => updateFullName('Next Name')}>Set next name</button>
     </div>
   );
 }
 ```
 
-Notice that `usePart` can be used as if the Proxy Part was itself a member of state.
+One thing to note is that, unlike other Parts, a Proxy Part is not callable as a function. This is because it serves two distinct and equal purposes (select and update). However, if you want to use those outside of a React context, then you can access each with the respective `select` and `update` properties:
+
+```ts
+const fullName = fullNamePart.select(store.getState);
+store.dispatch(fullNamePart.update('Next name'));
+```
+
+#### Non-Part proxies
 
 You can also create a Proxy Part that is not based on any other Parts, but rather will execute on any state change.
 
 ```ts
-const proxyName = part(
+const fullNamePart = part(
   (firstName, lastName) => `${firstName} ${lastName}`,
   (dispatch, _, nextName: string) => {
     const [first, last] = nextName.split(' ');
@@ -390,16 +435,53 @@ const proxyName = part(
 );
 ```
 
-This is mainly helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts.
+This is usually only helpful when `react-redux-partitioner` is used in combination with other traditional reducers, and the state object contains more than just Stateful Parts. If you are exclusively using Parts for state, then you should prefer to pass the list of Part dependencies, as it will improve render performance.
+
+## Use with other reducers
+
+Sometimes it is necessary to combine Part-based state with reducers that do not use parts, for example when using a third-party library or during migration. In this case, you can provide the non-Parts reducer when creating the partitioner, and both will be used:
+
+```ts
+import { createPartitioner } from 'react-redux-partitioner';
+import existingReducer from './reducer';
+import parts from './parts';
+
+export default createPartitioner({ parts, otherReducer: existingReducer });
+```
+
+If you are passing a reducer map to `configureStore` in `@reduxjs/toolkit`, or using [`combineReducers`](https://redux.js.org/api/combinereducers), `react-redux-partitioner` will accept this reducer map as well, building the other reducer for you:
+
+```ts
+import { createPartitioner } from 'react-redux-partitioner';
+import { count } from './reducers';
+import parts from './parts';
+
+export default createPartitioner({ parts, otherReducer: { count } });
+```
 
 ## Store enhancements
 
+### Immutable updates
+
+While Redux embraces the _convention_ of immutability, it does not _enforce_ it in the implementation, and therefore creates the need to manually write code that enforces it. `react-redux-partitioner` embraces _enforcement_ of that immutability, which can have subtle but distinct differences in output:
+
+1. When the reference to a part in state is the same as that in state, state will not change.
+2. When the state object has not changed, subscribers to the store or any specific Part will not be notified.
+
+It is very common to "code around" these in Redux, so you may not even be aware that you are gating a dispatch on the value being different, or returning a conditional `state.value === action.payload ? state : { ...state, value: payload }` in your action handlers. With `react-redux-partitioner`, this is built in, which should reduce the complexity of your code. That said, it does different from standard Redux, which will always eagerly update state, and notify subscribers on every dispatch regardless of state changes, so it is called out explicitly.
+
 ### `getState`
 
-In standard Redux, `getState` accepts no arguments and returns the entire state object. With the enhancer, this method is updated to support receiving a selectable Part and returning that Part's value. This can either be the value stored in state for Stateful Parts, or the derived value from Select or Proxy Parts.
+In standard Redux, `getState` accepts no arguments and returns the entire state object. With the enhancer, this method is updated to support receiving a selectable Part and returning that Part's value. This can either be the value stored in state for Stateful Parts, or the derived value from [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts):
 
 ```ts
 const todos = store.getState(todosPart);
+```
+
+If no parameter is passed, it works as it does in standard Redux:
+
+```ts
+const state = store.getState();
 ```
 
 ### `subscribeToPart`
@@ -422,7 +504,7 @@ import { createPartitioner } from 'react-redux-partitioner';
 import parts from './parts';
 
 const debouncedNotify = debounce((notify) => notify(), 0);
-const enhancer = createPartitioner(parts, debounceNotify);
+const enhancer = createPartitioner({ parts, notifier: debounceNotify });
 ```
 
 This will debounce subscription notifications for both the entire store and specific Parts.
