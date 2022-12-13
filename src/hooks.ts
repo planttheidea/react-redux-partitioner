@@ -32,10 +32,10 @@ export function useDispatch(): Dispatch {
 export function usePartitionerContext<
   State = unknown,
   DispatchableAction extends Action = AnyAction
->(): ReactReduxPartitionerContextType<DispatchableAction, State> {
+>(): ReactReduxPartitionerContextType<State, DispatchableAction> {
   const context = useContext(
     ReactReduxPartitionerContext
-  ) as ReactReduxPartitionerContextType<DispatchableAction, State>;
+  ) as ReactReduxPartitionerContextType<State, DispatchableAction>;
 
   if (!context) {
     throw new Error(

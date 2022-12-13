@@ -37,7 +37,7 @@ export interface Partitioner<
   OtherReducerState,
   DispatchableAction extends AnyAction
 > {
-  enhancer: Enhancer<Parts>;
+  enhancer: Enhancer<Parts, DispatchableAction>;
   reducer: Reducer<
     Omit<OtherReducerState, keyof CombinedPartsState<Parts>> &
       CombinedPartsState<Parts>,

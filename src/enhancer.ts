@@ -2,7 +2,7 @@ import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import { noop, updateUniqueList } from './utils';
 import { isPartAction, isSelectablePart } from './validate';
 
-import type { PreloadedState, Reducer } from 'redux';
+import type { Action, AnyAction, PreloadedState, Reducer } from 'redux';
 import type {
   AnySelectPart,
   AnySelectablePart,
@@ -18,13 +18,15 @@ import type {
   Unsubscribe,
 } from './types';
 
-export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
-  notifier,
-  partMap,
-}: EnhancerConfig): Enhancer<Parts> {
+export function createEnhancer<
+  Parts extends readonly AnyStatefulPart[],
+  DispatchableAction extends Action = AnyAction
+>({ notifier, partMap }: EnhancerConfig): Enhancer<Parts, DispatchableAction> {
   type PartedState = CombinedPartsState<Parts>;
 
-  return function enhancer(createStore: EnhancerStoreCreator<Parts>) {
+  return function enhancer(
+    createStore: EnhancerStoreCreator<Parts, DispatchableAction>
+  ) {
     return function enhance<StoreReducer extends Reducer>(
       reducer: StoreReducer,
       preloadedState: PreloadedState<PartedState> | undefined
@@ -266,5 +268,5 @@ export function createEnhancer<Parts extends readonly AnyStatefulPart[]>({
         subscribeToPart,
       };
     };
-  } as Enhancer<Parts>;
+  } as Enhancer<Parts, DispatchableAction>;
 }

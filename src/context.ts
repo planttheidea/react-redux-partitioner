@@ -16,13 +16,13 @@ const { Provider: ContextProvider } = ReactReduxPartitionerContext;
  * of Parts within the subtree.
  */
 export function Provider<
-  DispatchableAction extends Action = AnyAction,
-  State = unknown
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
 >({
   children,
   getServerState,
   store,
-}: ProviderProps<DispatchableAction, State>): JSX.Element {
+}: ProviderProps<State, DispatchableAction>): JSX.Element {
   const context = useMemo(
     () => ({ getServerState, store }),
     [getServerState, store]

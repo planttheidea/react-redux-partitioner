@@ -3,8 +3,8 @@ import type { Action, AnyAction } from 'redux';
 import type { Store } from './store';
 
 export interface ReactReduxPartitionerContextType<
-  DispatchableAction extends Action = AnyAction,
-  State = unknown
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
 > {
   /**
    * Returns a snapshot of state, essentially the server-side equivalent of
@@ -18,8 +18,8 @@ export interface ReactReduxPartitionerContextType<
 }
 
 export interface ProviderProps<
-  DispatchableAction extends Action = AnyAction,
-  State = unknown
-> extends ReactReduxPartitionerContextType<DispatchableAction, State> {
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
+> extends ReactReduxPartitionerContextType<State, DispatchableAction> {
   children: ReactNode;
 }

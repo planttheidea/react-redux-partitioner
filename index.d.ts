@@ -62,9 +62,9 @@ export const ReactReduxPartitionerContext: Context<ReactReduxPartitionerContextT
  * of Parts within the subtree.
  */
 export function Provider<
-  DispatchableAction extends Action = AnyAction,
-  State = unknown
->(props: ProviderProps<DispatchableAction, State>): JSX.Element;
+  State = unknown,
+  DispatchableAction extends Action = AnyAction
+>(props: ProviderProps<State, DispatchableAction>): JSX.Element;
 
 /** Parts */
 
@@ -260,7 +260,7 @@ export function useDispatch(): Dispatch;
 export function usePartitionerContext<
   State = unknown,
   DispatchableAction extends Action = AnyAction
->(): ReactReduxPartitionerContextType<DispatchableAction, State>;
+>(): ReactReduxPartitionerContextType<State, DispatchableAction>;
 
 /**
  * Returns a [value, update] `useState`-style pair for the Part passed.

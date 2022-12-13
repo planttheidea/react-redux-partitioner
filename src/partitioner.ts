@@ -24,7 +24,10 @@ export function createPartitioner<
   DispatchableAction
 >): Partitioner<Parts, OtherReducerState, DispatchableAction> {
   const partMap = getStatefulPartMap(parts);
-  const enhancer = createEnhancer<Parts>({ notifier, partMap });
+  const enhancer = createEnhancer<Parts, DispatchableAction>({
+    notifier,
+    partMap,
+  });
   const reducer = createReducer<Parts, OtherReducerState, DispatchableAction>({
     otherReducer,
     partMap,
