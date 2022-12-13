@@ -680,28 +680,28 @@ export function part<
   config: BoundSelectPartConfig<Parts, Selector>
 ): BoundSelectPart<Parts, Selector>;
 
-// /**
-//  * Creates a Select Part, which allows deriving a value based on values
-//  * selected from state. When used with `usePart`, it will update whenever
-//  * the state object changes.
-//  *
-//  * This only beneficial if being used with values in state that are not
-//  * using Parts. If you only are concerned with values in state that are
-//  * Parts, you should pass an array of those Parts before the selector.
-//  */
-// export function part<Selector extends AnyGenericSelector>(
-//   config: UnboundSelectPartConfig<Selector>
-// ): UnboundSelectPart<Selector>;
+/**
+ * Creates a Select Part, which allows deriving a value based on values
+ * selected from state. When used with `usePart`, it will update whenever
+ * the state object changes.
+ *
+ * This only beneficial if being used with values in state that are not
+ * using Parts. If you only are concerned with values in state that are
+ * Parts, you should pass an array of those Parts before the selector.
+ */
+export function part<Selector extends AnyGenericSelector>(
+  config: UnboundSelectPartConfig<Selector>
+): UnboundSelectPart<Selector>;
 
-// /**
-//  * Creates an Update Part, which allows performing updates of values in
-//  * state. When used with `usePart`, it itself will never trigger an update.
-//  * As such, it is recommended to use this with `usePartUpdate` instead of
-//  * `usePart`.
-//  */
-// export function part<Updater extends AnyUpdater>(
-//   config: UpdatePartConfig<Updater>
-// ): UpdatePart<Updater>;
+/**
+ * Creates an Update Part, which allows performing updates of values in
+ * state. When used with `usePart`, it itself will never trigger an update.
+ * As such, it is recommended to use this with `usePartUpdate` instead of
+ * `usePart`.
+ */
+export function part<Updater extends AnyUpdater>(
+  config: UpdatePartConfig<Updater>
+): UpdatePart<Updater>;
 
 export function part<
   Name extends string,

@@ -95,5 +95,6 @@
     "typecheck": "tsc --noEmit --p build/tsconfig/base.json"
   },
   "type": "module",
+  "types": "./index.d.ts",
   "version": "1.0.0-beta.0"
 }

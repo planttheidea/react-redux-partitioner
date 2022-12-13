@@ -3,6 +3,9 @@ import { createContext, createElement, useMemo } from 'react';
 import type { Action, AnyAction } from 'redux';
 import type { ProviderProps, ReactReduxPartitionerContextType } from './types';
 
+/**
+ * Context used by partitioner hooks internally.
+ */
 export const ReactReduxPartitionerContext =
   createContext<ReactReduxPartitionerContextType>(null);
 
