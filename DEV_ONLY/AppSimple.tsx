@@ -1,7 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import React, { useEffect } from 'react';
 
-import { Provider, createPartitioner, part, usePart } from '../src';
+import {
+  Provider,
+  createPartitioner,
+  part,
+  usePart,
+  usePartValue,
+} from '../src';
 
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);
@@ -13,6 +19,16 @@ const store = configureStore({ reducer, enhancers: [enhancer] });
 
 console.log(store.getState());
 console.log(composedPart.d);
+
+store.subscribeToPart(primitivePart, () => {
+  const primitive = store.getState(primitivePart);
+
+  console.log('primitive updated', primitive);
+
+  if (primitive !== 'third value') {
+    store.dispatch(primitivePart('third value'));
+  }
+});
 
 function useAfterTimeout(fn: () => void, ms: number) {
   useEffect(() => {
@@ -29,7 +45,7 @@ function Primitive() {
 }
 
 function Composed() {
-  const [value, setValue] = usePart(composedPart);
+  const value = usePartValue(composedPart);
 
   return <div>Composed: {JSON.stringify(value)}</div>;
 }
