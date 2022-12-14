@@ -430,7 +430,7 @@ function Name() {
 One thing to note is that, unlike other Parts, a Proxy Part is not callable as a function. This is because it serves two distinct and equal purposes (select and update). However, if you want to use those outside of a React context, then you can access each with the respective `select` and `update` properties:
 
 ```ts
-const fullName = fullNamePart.select(store.getState);
+const fullName = fullNamePart.select(store.getState());
 store.dispatch(fullNamePart.update('Next name'));
 ```
 
