@@ -31,6 +31,7 @@ import {
   toggleUpdate,
   userProxy,
   userProxySelect,
+  userUpdate,
 } from './store/parts';
 
 store.subscribe(() => {
@@ -176,6 +177,7 @@ function Toggle() {
 
 function User() {
   const [user, setUser] = usePart(userProxy);
+  const updateUser = usePartUpdate(userUpdate);
 
   console.count('user');
 
@@ -183,7 +185,11 @@ function User() {
 
   console.log({ user, alsoUser });
 
-  useAfterTimeout(() => setUser({ id: 'nextId', name: 'New Name' }), 3500);
+  // useAfterTimeout(() => setUser({ id: 'nextId', name: 'New Name' }), 3500);
+  useAfterTimeout(
+    () => updateUser({ id: 'nextId', name: { first: 'New', last: 'Name' } }),
+    3500
+  );
 
   return <h2>User: {user}</h2>;
 }

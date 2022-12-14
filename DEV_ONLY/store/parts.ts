@@ -54,6 +54,9 @@ export const userPart = part({
   name: 'user',
   parts: [idPart, namePart],
 });
+
+export const userUpdate = userPart.update('UPDATE_USER_CUSTOM');
+
 export const fullNameProxy = part(
   [firstNamePart, lastNamePart],
   (firstName, lastName) => `${firstName} ${lastName}`,

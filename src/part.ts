@@ -55,7 +55,6 @@ import type {
   FunctionalUpdate,
   Get,
   GetState,
-  GetValueUpdater,
   IsEqual,
   MaybePromise,
   PartAction,
@@ -254,11 +253,12 @@ function getAllDescendantDependents(parts: readonly AnySelectablePart[]) {
 }
 
 function getPrefixedType(path: string[], type: string): string {
-  const prefix = path.slice(0, path.length - 1).join('.');
+  const prefix =
+    path.length > 1 ? path.slice(0, path.length - 1).join('.') : path[0];
   const splitType = type.split('/');
   const baseType = splitType[splitType.length - 1]!;
 
-  return prefix ? `${prefix}/${baseType}` : baseType;
+  return `${prefix}/${baseType}`;
 }
 
 function isFunctionalUpdate<State>(
@@ -343,7 +343,7 @@ export function createComposedPart<
   part.p = [name];
   part.r = createStatefulReduce(part);
   part.s = createStatefulSet(part);
-  part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
+  part.t = getPrefixedType([name], `UPDATE_${toScreamingSnakeCase(name)}`);
 
   updateStatefulDependents<State>(parts, part, name);
 
@@ -379,7 +379,7 @@ export function createPrimitivePart<Name extends string, State>(
   part.p = [name];
   part.r = createStatefulReduce(part);
   part.s = createStatefulSet(part);
-  part.t = `UPDATE_${toScreamingSnakeCase(name)}`;
+  part.t = getPrefixedType([name], `UPDATE_${toScreamingSnakeCase(name)}`);
 
   return part;
 }
@@ -530,8 +530,8 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
       });
     }
 
-    return createUpdatePart<GetValueUpdater<Part['i'], Parameters<GetValue>>>({
-      // @ts-expect-error - `set` types don't perfectly align, but we know them.
+    // @ts-expect-error - `set` types don't perfectly align, but we know them.
+    return createUpdatePart<typeof set>({
       set,
     });
   } as StatefulPartUpdater<Part['i']>;

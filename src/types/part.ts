@@ -81,13 +81,11 @@ export interface BasePart {
   f: typeof PART;
 }
 
-export interface GetValueUpdater<State, Args extends any[]> extends AnyUpdater {
-  (
-    dispatch: Dispatch,
-    getState: GetState<State>,
-    ...args: Args
-  ): PartAction<State>;
-}
+export type GetValueUpdater<State, Args extends any[]> = (
+  dispatch: Dispatch,
+  getState: GetState<State>,
+  ...args: Args
+) => PartAction<State>;
 
 export interface StatefulPartUpdater<State> {
   /**
@@ -95,7 +93,6 @@ export interface StatefulPartUpdater<State> {
    * for this part. Allows for declarative action types.
    */
   (type: string): UpdatePart<GetValueUpdater<State, [State]>>;
-
   /**
    * Creates a dedicated action creator for updating the value in state
    * for this part. Allows for declarative action types, as well as custom
@@ -104,7 +101,11 @@ export interface StatefulPartUpdater<State> {
   <GetValue extends AnyGetValue<State>>(
     type: string,
     getValue: GetValue
-  ): UpdatePart<GetValueUpdater<State, Parameters<GetValue>>>;
+  ): UpdatePart<
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - The tuple is not inferrable here, but passes through to the consumer.
+    GetValueUpdater<State, Parameters<GetValue>>
+  >;
 }
 
 export interface BaseStatefulPart<Name extends string, State> extends BasePart {
