@@ -503,7 +503,24 @@ const state = store.getState();
 
 ### `subscribe`
 
-The standard Redux `subscribe` method will notify whenever something has dispatched, regardless of whether state changed or not. Since `react-redux-partitioner` takes an opinionated stance regarding immutable state changes, `subscribe` has been updated to reflect this to only notify when a state value changes. In addition, if a [custom notifier is applied for batching](#batched-notification-of-subscribers), notification of those subscribers will be batched. If you have listeners that rely on every dispatch and not just every state change, or wish to avoid the batching mechanics, you can use [`subscribeToDispatch`](#subscribetodispatch), which refers to the original `store.subscribe()` method.
+The standard Redux `subscribe` method will notify whenever something has dispatched, regardless of whether state changed or not. Since `react-redux-partitioner` takes an opinionated stance regarding immutable state changes, `subscribe` has been updated to reflect this to only notify when a state value changes. In addition, if a [custom notifier is applied for batching](#batched-notification-of-subscribers), notification of those subscribers will be batched.
+
+```ts
+const todosPart = part('todos', [] as string[]);
+const { enhancer, reducer } = createPartitioner({
+  parts: [todosPart] as const,
+});
+const store = configureStore({ reducer, enhancers: [enhancer] });
+
+store.subscribe(() => {
+  console.log('state changed!');
+});
+
+store.dispatch({ type: 'FOO' }); // listener not called
+store.dispatch(todosPart(['do stuff'])); // 'state changed!'
+```
+
+If you have listeners that rely on every dispatch and not just every state change, or wish to avoid the batching mechanics, you can use [`subscribeToDispatch`](#subscribetodispatch), which refers to the original `store.subscribe()` method.
 
 ### `subscribeToDispatch`
 
