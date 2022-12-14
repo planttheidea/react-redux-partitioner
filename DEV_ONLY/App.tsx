@@ -38,6 +38,10 @@ store.subscribe(() => {
   console.log('store changed', store.getState());
 });
 
+store.subscribeToDispatch(() => {
+  console.log('something was dispatched', store.getState());
+});
+
 store.subscribeToPart(descriptionPart, () => {
   console.log('description changed', store.getState(descriptionPart));
 });

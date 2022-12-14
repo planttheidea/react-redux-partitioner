@@ -24,6 +24,8 @@ A simple and performant way to manage Redux state.
   - [Store enhancements](#store-enhancements)
     - [Immutable updates](#immutable-updates)
     - [`getState`](#getstate)
+    - [`subscribe`](#subscribe)
+    - [`subscribeToDispatch`](#subscribetodispatch)
     - [`subscribeToPart`](#subscribetopart)
     - [Batched notification of subscribers](#batched-notification-of-subscribers)
 
@@ -499,9 +501,17 @@ If no parameter is passed, it works as it does in standard Redux:
 const state = store.getState();
 ```
 
+### `subscribe`
+
+The standard Redux `subscribe` method will notify whenever something has dispatched, regardless of whether state changed or not. Since `react-redux-partitioner` takes an opinionated stance regarding immutable state changes, `subscribe` has been updated to reflect this to only notify when a state value changes. In addition, if a [custom notifier is applied for batching](#batched-notification-of-subscribers), notification of those subscribers will be batched. If you have listeners that rely on every dispatch and not just every state change, or wish to avoid the batching mechanics, you can use [`subscribeToDispatch`](#subscribetodispatch), which refers to the original `store.subscribe()` method.
+
+### `subscribeToDispatch`
+
+A reference to standard Redux `store.subscribe()` method, which will notify eagerly whenever a `dispatch` occurs regardless of whether state changes.
+
 ### `subscribeToPart`
 
-The standard Redux `subscribe` method still exists for listeners to all store changes, however you can subscribe to changes for a specific selectable Part with `subscribeToPart`.
+Subscribe to changes specific to a Part, ignoring changes to other Parts in state. This works the same as [the `subscribe` method provided](#subscribe), in that only Part state changes will trigger a notification, and those notifications will be batched if a [custom notifier is applied](#batched-notification-of-subscribers).
 
 ```ts
 const unsubscribe = store.subscribeToPart(todosPart, () => {

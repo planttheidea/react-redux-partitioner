@@ -2,6 +2,25 @@ import { part, Unsubscribe } from '../src';
 import { createStore } from './__utils__/createStore';
 
 describe('enhancer', () => {
+  function debounce<Fn extends (notify: () => void) => void>(
+    fn: Fn,
+    ms = 0
+  ): Fn {
+    let id: ReturnType<typeof setTimeout> | null = null;
+
+    return function (notify: () => void): void {
+      if (id) {
+        clearTimeout(id);
+      }
+
+      id = setTimeout(() => {
+        fn(notify);
+        id = null;
+      }, ms);
+    } as Fn;
+  }
+  const debouncedNotify = debounce((notify) => notify(), 0);
+
   describe('store properties', () => {
     it('should enhance the store with the properties needed', () => {
       const primitivePart = part('primitive', 'value');
@@ -52,359 +71,417 @@ describe('enhancer', () => {
   });
 
   describe('subscriptions', () => {
-    it('should allow subscription to changes in all state', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({ parts: [primitivePart, otherPart] as const });
+    describe('`subscribe`', () => {
+      it('should allow subscription to changes in all state', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
 
-      const listener = jest.fn();
-      const unsubscribe = store.subscribe(listener);
+        const listener = jest.fn();
+        const unsubscribe = store.subscribe(listener);
 
-      store.dispatch(primitivePart('next value'));
-      store.dispatch(otherPart(234));
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(otherPart(234));
 
-      expect(listener).toHaveBeenCalledTimes(2);
+        expect(listener).toHaveBeenCalledTimes(2);
 
-      listener.mockClear();
+        listener.mockClear();
 
-      // Setting to the same value does not update state, and therefore
-      // should not notify listeners.
-      store.dispatch(primitivePart('next value'));
+        // Setting to the same value does not update state, and therefore
+        // should not notify listeners.
+        store.dispatch(primitivePart('next value'));
 
-      expect(listener).not.toHaveBeenCalled();
+        expect(listener).not.toHaveBeenCalled();
 
-      unsubscribe();
+        unsubscribe();
 
-      store.dispatch(primitivePart('third value'));
+        store.dispatch(primitivePart('third value'));
 
-      expect(listener).not.toHaveBeenCalled();
+        expect(listener).not.toHaveBeenCalled();
+      });
+
+      it('should batch notifications to subscribers', async () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+          notifier: debouncedNotify,
+        });
+
+        const listener = jest.fn();
+        store.subscribe(listener);
+
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(otherPart(234));
+
+        expect(listener).not.toHaveBeenCalled();
+
+        await new Promise((resolve) => setTimeout(resolve, 1));
+
+        expect(listener).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('should allow subscription to state changes for a specific part', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({ parts: [primitivePart, otherPart] as const });
+    describe('`subscribeToDispatch`', () => {
+      it('should allow subscription to changes in all state', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
 
-      const listener = jest.fn();
-      const unsubscribe = store.subscribeToPart(primitivePart, listener);
+        const listener = jest.fn();
+        const unsubscribe = store.subscribeToDispatch(listener);
 
-      store.dispatch(primitivePart('next value'));
-      store.dispatch(otherPart(234));
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(otherPart(234));
 
-      expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledTimes(2);
 
-      listener.mockClear();
+        listener.mockClear();
 
-      // Setting to the same value does not update state, and therefore
-      // should not notify listeners.
-      store.dispatch(primitivePart('next value'));
+        // Setting to the same value does not update state, and but still
+        // should notify listeners.
+        store.dispatch(primitivePart('next value'));
 
-      expect(listener).not.toHaveBeenCalled();
+        expect(listener).toHaveBeenCalledTimes(1);
 
-      unsubscribe();
+        listener.mockClear();
 
-      store.dispatch(primitivePart('third value'));
+        unsubscribe();
 
-      expect(listener).not.toHaveBeenCalled();
+        store.dispatch(primitivePart('third value'));
+
+        expect(listener).not.toHaveBeenCalled();
+      });
+
+      it('should notify eagerly on dispatch, even when state is unchanged', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
+
+        const listener = jest.fn();
+        store.subscribeToDispatch(listener);
+
+        store.dispatch({ type: 'BUNK' });
+
+        expect(listener).toBeCalledTimes(1);
+      });
+
+      it('should not batch notifications to subscribers', () => {
+        const primitivePart = part('primitive', 'value');
+        const store = createStore({
+          parts: [primitivePart] as const,
+          notifier: debouncedNotify,
+        });
+
+        const listener = jest.fn();
+        store.subscribeToDispatch(listener);
+
+        store.dispatch(primitivePart('next value'));
+
+        expect(listener).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('should ignore changes to other parts', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({ parts: [primitivePart, otherPart] as const });
+    describe('`subscribeToPart`', () => {
+      it('should allow subscription to state changes for a specific part', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
 
-      const listener = jest.fn();
+        const listener = jest.fn();
+        const unsubscribe = store.subscribeToPart(primitivePart, listener);
 
-      store.subscribeToPart(primitivePart, listener);
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(otherPart(234));
 
-      store.dispatch(otherPart(234));
+        expect(listener).toHaveBeenCalledTimes(1);
 
-      expect(listener).not.toHaveBeenCalled();
+        listener.mockClear();
 
-      store.dispatch({ type: 'UNRELATED_TYPE' });
+        // Setting to the same value does not update state, and therefore
+        // should not notify listeners.
+        store.dispatch(primitivePart('next value'));
 
-      expect(listener).not.toHaveBeenCalled();
-    });
+        expect(listener).not.toHaveBeenCalled();
 
-    it('should notify when an composed owner state value is updated', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const ownerPart = part('owner', [primitivePart]);
-      const store = createStore({ parts: [ownerPart, otherPart] as const });
+        unsubscribe();
 
-      const listener = jest.fn();
-      const unsubscribe = store.subscribeToPart(primitivePart, listener);
+        store.dispatch(primitivePart('third value'));
 
-      store.dispatch(primitivePart('next value'));
-      store.dispatch(otherPart(234));
+        expect(listener).not.toHaveBeenCalled();
+      });
 
-      expect(listener).toHaveBeenCalledTimes(1);
+      it('should ignore changes to other parts', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
 
-      listener.mockClear();
+        const listener = jest.fn();
 
-      // Setting to the same value does not update state, and therefore
-      // should not notify listeners.
-      store.dispatch(primitivePart('next value'));
+        store.subscribeToPart(primitivePart, listener);
 
-      expect(listener).not.toHaveBeenCalled();
+        store.dispatch(otherPart(234));
 
-      store.dispatch(ownerPart({ primitive: 'third value' }));
+        expect(listener).not.toHaveBeenCalled();
 
-      expect(listener).toHaveBeenCalledTimes(1);
+        store.dispatch({ type: 'UNRELATED_TYPE' });
 
-      listener.mockClear();
+        expect(listener).not.toHaveBeenCalled();
+      });
 
-      unsubscribe();
+      it('should notify when an composed owner state value is updated', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const ownerPart = part('owner', [primitivePart]);
+        const store = createStore({ parts: [ownerPart, otherPart] as const });
 
-      store.dispatch(primitivePart('fourth value'));
+        const listener = jest.fn();
+        const unsubscribe = store.subscribeToPart(primitivePart, listener);
 
-      expect(listener).not.toHaveBeenCalled();
-    });
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(otherPart(234));
 
-    it('should notify listeners for owners when composed parts are updated', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const ownerPart = part('owner', [primitivePart]);
-      const store = createStore({ parts: [ownerPart, otherPart] as const });
+        expect(listener).toHaveBeenCalledTimes(1);
 
-      const listener = jest.fn();
-      const unsubscribe = store.subscribeToPart(ownerPart, listener);
+        listener.mockClear();
 
-      store.dispatch(primitivePart('next value'));
+        // Setting to the same value does not update state, and therefore
+        // should not notify listeners.
+        store.dispatch(primitivePart('next value'));
 
-      expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).not.toHaveBeenCalled();
 
-      listener.mockClear();
+        store.dispatch(ownerPart({ primitive: 'third value' }));
 
-      store.dispatch(otherPart(234));
+        expect(listener).toHaveBeenCalledTimes(1);
 
-      expect(listener).not.toHaveBeenCalled();
+        listener.mockClear();
 
-      // Setting to the same value does not update state, and therefore
-      // should not notify listeners.
-      store.dispatch(primitivePart('next value'));
+        unsubscribe();
 
-      expect(listener).not.toHaveBeenCalled();
+        store.dispatch(primitivePart('fourth value'));
 
-      unsubscribe();
+        expect(listener).not.toHaveBeenCalled();
+      });
 
-      store.dispatch(primitivePart('third value'));
+      it('should notify listeners for owners when composed parts are updated', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const ownerPart = part('owner', [primitivePart]);
+        const store = createStore({ parts: [ownerPart, otherPart] as const });
 
-      expect(listener).not.toHaveBeenCalled();
-    });
+        const listener = jest.fn();
+        const unsubscribe = store.subscribeToPart(ownerPart, listener);
 
-    it('should notify select-based dependents when stateful parts are updated', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const ownerPart = part('owner', [primitivePart]);
-      const store = createStore({ parts: [ownerPart, otherPart] as const });
+        store.dispatch(primitivePart('next value'));
 
-      const selectBoth = part(
-        [primitivePart, otherPart],
-        (primitive, other) => `${primitive}:${other}`
-      );
-      const primitiveOnly = part([primitivePart], (primitive) =>
-        primitive.slice(1)
-      );
-      const otherOnly = part([otherPart], (other) => other * other);
-      const ownerOnly = part([ownerPart], (owner) => owner);
+        expect(listener).toHaveBeenCalledTimes(1);
 
-      const bothListener = jest.fn();
-      store.subscribeToPart(selectBoth, bothListener);
+        listener.mockClear();
 
-      const primitiveListener = jest.fn();
-      store.subscribeToPart(primitiveOnly, primitiveListener);
+        store.dispatch(otherPart(234));
 
-      const otherListener = jest.fn();
-      store.subscribeToPart(otherOnly, otherListener);
+        expect(listener).not.toHaveBeenCalled();
 
-      const ownerListener = jest.fn();
-      store.subscribeToPart(ownerOnly, ownerListener);
+        // Setting to the same value does not update state, and therefore
+        // should not notify listeners.
+        store.dispatch(primitivePart('next value'));
 
-      const clearAll = () =>
-        [bothListener, primitiveListener, otherListener, ownerListener].forEach(
-          (listener) => listener.mockClear()
+        expect(listener).not.toHaveBeenCalled();
+
+        unsubscribe();
+
+        store.dispatch(primitivePart('third value'));
+
+        expect(listener).not.toHaveBeenCalled();
+      });
+
+      it('should notify select-based dependents when stateful parts are updated', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const ownerPart = part('owner', [primitivePart]);
+        const store = createStore({ parts: [ownerPart, otherPart] as const });
+
+        const selectBoth = part(
+          [primitivePart, otherPart],
+          (primitive, other) => `${primitive}:${other}`
         );
+        const primitiveOnly = part([primitivePart], (primitive) =>
+          primitive.slice(1)
+        );
+        const otherOnly = part([otherPart], (other) => other * other);
+        const ownerOnly = part([ownerPart], (owner) => owner);
 
-      store.dispatch(primitivePart('next value'));
+        const bothListener = jest.fn();
+        store.subscribeToPart(selectBoth, bothListener);
 
-      expect(bothListener).toHaveBeenCalledTimes(1);
-      expect(primitiveListener).toHaveBeenCalledTimes(1);
-      expect(otherListener).not.toHaveBeenCalled();
-      expect(ownerListener).toHaveBeenCalledTimes(1);
+        const primitiveListener = jest.fn();
+        store.subscribeToPart(primitiveOnly, primitiveListener);
 
-      clearAll();
+        const otherListener = jest.fn();
+        store.subscribeToPart(otherOnly, otherListener);
 
-      store.dispatch(otherPart(234));
+        const ownerListener = jest.fn();
+        store.subscribeToPart(ownerOnly, ownerListener);
 
-      expect(bothListener).toHaveBeenCalledTimes(1);
-      expect(primitiveListener).not.toHaveBeenCalled();
-      expect(otherListener).toHaveBeenCalledTimes(1);
-      expect(ownerListener).not.toHaveBeenCalled();
+        const clearAll = () =>
+          [
+            bothListener,
+            primitiveListener,
+            otherListener,
+            ownerListener,
+          ].forEach((listener) => listener.mockClear());
 
-      clearAll();
+        store.dispatch(primitivePart('next value'));
 
-      store.dispatch(ownerPart({ primitive: 'third value' }));
+        expect(bothListener).toHaveBeenCalledTimes(1);
+        expect(primitiveListener).toHaveBeenCalledTimes(1);
+        expect(otherListener).not.toHaveBeenCalled();
+        expect(ownerListener).toHaveBeenCalledTimes(1);
 
-      expect(bothListener).toHaveBeenCalledTimes(1);
-      expect(primitiveListener).toHaveBeenCalledTimes(1);
-      expect(otherListener).not.toHaveBeenCalled();
-      expect(ownerListener).toHaveBeenCalledTimes(1);
+        clearAll();
 
-      clearAll();
-    });
+        store.dispatch(otherPart(234));
 
-    it('should notify the entire descendancy tree', () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({ parts: [primitivePart, otherPart] as const });
+        expect(bothListener).toHaveBeenCalledTimes(1);
+        expect(primitiveListener).not.toHaveBeenCalled();
+        expect(otherListener).toHaveBeenCalledTimes(1);
+        expect(ownerListener).not.toHaveBeenCalled();
 
-      const uppercase = part([primitivePart], (primitive) =>
-        primitive.toUpperCase()
-      );
-      const squared = part([otherPart], (other) => other ** 2);
-      const combined = part(
-        [uppercase, squared],
-        (primitive, other) => `${primitive}:${other}`
-      );
-      const splitUppercase = part([uppercase], (primitive) =>
-        primitive.split('')
-      );
-      const squaredHalved = part([squared], (other) => other / 2);
+        clearAll();
 
-      type TestHandler = [jest.Mock, Unsubscribe];
-      type TestHandlers = [
-        TestHandler,
-        TestHandler,
-        TestHandler,
-        TestHandler,
-        TestHandler
-      ];
+        store.dispatch(ownerPart({ primitive: 'third value' }));
 
-      const [
-        [uppercaseListener, unsubscribeUppercase],
-        [squaredListener, unsubscribeSquared],
-        [combinedListener],
-        [splitListener],
-        [halvedListener],
-      ] = [uppercase, squared, combined, splitUppercase, squaredHalved].map(
-        (part) => {
-          const listener = jest.fn();
+        expect(bothListener).toHaveBeenCalledTimes(1);
+        expect(primitiveListener).toHaveBeenCalledTimes(1);
+        expect(otherListener).not.toHaveBeenCalled();
+        expect(ownerListener).toHaveBeenCalledTimes(1);
 
-          return [listener, store.subscribeToPart(part, listener)] as const;
-        }
-      ) as TestHandlers;
-
-      const clearAll = () =>
-        [
-          uppercaseListener,
-          squaredListener,
-          combinedListener,
-          splitListener,
-          halvedListener,
-        ].forEach((listener) => listener.mockClear());
-
-      store.dispatch(primitivePart('next value'));
-
-      expect(uppercaseListener).toHaveBeenCalledTimes(1);
-      expect(squaredListener).not.toHaveBeenCalled();
-      expect(combinedListener).toHaveBeenCalledTimes(1);
-      expect(splitListener).toHaveBeenCalledTimes(1);
-      expect(halvedListener).not.toHaveBeenCalled();
-
-      clearAll();
-
-      store.dispatch(otherPart(234));
-
-      expect(uppercaseListener).not.toHaveBeenCalled();
-      expect(squaredListener).toHaveBeenCalledTimes(1);
-      expect(combinedListener).toHaveBeenCalledTimes(1);
-      expect(splitListener).not.toHaveBeenCalled();
-      expect(halvedListener).toHaveBeenCalledTimes(1);
-
-      clearAll();
-
-      unsubscribeUppercase();
-      unsubscribeSquared();
-
-      store.dispatch(primitivePart('third value'));
-
-      expect(uppercaseListener).not.toHaveBeenCalled();
-      expect(squaredListener).not.toHaveBeenCalled();
-      expect(combinedListener).toHaveBeenCalledTimes(1);
-      expect(splitListener).toHaveBeenCalledTimes(1);
-      expect(halvedListener).not.toHaveBeenCalled();
-
-      clearAll();
-
-      store.dispatch(otherPart(345));
-
-      expect(uppercaseListener).not.toHaveBeenCalled();
-      expect(squaredListener).not.toHaveBeenCalled();
-      expect(combinedListener).toHaveBeenCalledTimes(1);
-      expect(splitListener).not.toHaveBeenCalled();
-      expect(halvedListener).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('custom notifier', () => {
-    function debounce<Fn extends (notify: () => void) => void>(
-      fn: Fn,
-      ms = 0
-    ): Fn {
-      let id: ReturnType<typeof setTimeout> | null = null;
-
-      return function (notify: () => void): void {
-        if (id) {
-          clearTimeout(id);
-        }
-
-        id = setTimeout(() => {
-          fn(notify);
-          id = null;
-        }, ms);
-      } as Fn;
-    }
-    const debouncedNotify = debounce((notify) => notify(), 0);
-
-    it('should batch updates to state', async () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({
-        parts: [primitivePart, otherPart] as const,
-        notifier: debouncedNotify,
+        clearAll();
       });
 
-      const listener = jest.fn();
-      store.subscribe(listener);
+      it('should notify the entire descendancy tree', () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+        });
 
-      store.dispatch(primitivePart('next value'));
-      store.dispatch(otherPart(234));
+        const uppercase = part([primitivePart], (primitive) =>
+          primitive.toUpperCase()
+        );
+        const squared = part([otherPart], (other) => other ** 2);
+        const combined = part(
+          [uppercase, squared],
+          (primitive, other) => `${primitive}:${other}`
+        );
+        const splitUppercase = part([uppercase], (primitive) =>
+          primitive.split('')
+        );
+        const squaredHalved = part([squared], (other) => other / 2);
 
-      expect(listener).not.toHaveBeenCalled();
+        type TestHandler = [jest.Mock, Unsubscribe];
+        type TestHandlers = [
+          TestHandler,
+          TestHandler,
+          TestHandler,
+          TestHandler,
+          TestHandler
+        ];
 
-      await new Promise((resolve) => setTimeout(resolve, 1));
+        const [
+          [uppercaseListener, unsubscribeUppercase],
+          [squaredListener, unsubscribeSquared],
+          [combinedListener],
+          [splitListener],
+          [halvedListener],
+        ] = [uppercase, squared, combined, splitUppercase, squaredHalved].map(
+          (part) => {
+            const listener = jest.fn();
 
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
+            return [listener, store.subscribeToPart(part, listener)] as const;
+          }
+        ) as TestHandlers;
 
-    it('should batch updates to parts', async () => {
-      const primitivePart = part('primitive', 'value');
-      const otherPart = part('other', 123);
-      const store = createStore({
-        parts: [primitivePart, otherPart] as const,
-        notifier: debouncedNotify,
+        const clearAll = () =>
+          [
+            uppercaseListener,
+            squaredListener,
+            combinedListener,
+            splitListener,
+            halvedListener,
+          ].forEach((listener) => listener.mockClear());
+
+        store.dispatch(primitivePart('next value'));
+
+        expect(uppercaseListener).toHaveBeenCalledTimes(1);
+        expect(squaredListener).not.toHaveBeenCalled();
+        expect(combinedListener).toHaveBeenCalledTimes(1);
+        expect(splitListener).toHaveBeenCalledTimes(1);
+        expect(halvedListener).not.toHaveBeenCalled();
+
+        clearAll();
+
+        store.dispatch(otherPart(234));
+
+        expect(uppercaseListener).not.toHaveBeenCalled();
+        expect(squaredListener).toHaveBeenCalledTimes(1);
+        expect(combinedListener).toHaveBeenCalledTimes(1);
+        expect(splitListener).not.toHaveBeenCalled();
+        expect(halvedListener).toHaveBeenCalledTimes(1);
+
+        clearAll();
+
+        unsubscribeUppercase();
+        unsubscribeSquared();
+
+        store.dispatch(primitivePart('third value'));
+
+        expect(uppercaseListener).not.toHaveBeenCalled();
+        expect(squaredListener).not.toHaveBeenCalled();
+        expect(combinedListener).toHaveBeenCalledTimes(1);
+        expect(splitListener).toHaveBeenCalledTimes(1);
+        expect(halvedListener).not.toHaveBeenCalled();
+
+        clearAll();
+
+        store.dispatch(otherPart(345));
+
+        expect(uppercaseListener).not.toHaveBeenCalled();
+        expect(squaredListener).not.toHaveBeenCalled();
+        expect(combinedListener).toHaveBeenCalledTimes(1);
+        expect(splitListener).not.toHaveBeenCalled();
+        expect(halvedListener).toHaveBeenCalledTimes(1);
       });
 
-      const listener = jest.fn();
-      store.subscribeToPart(primitivePart, listener);
+      it('should batch notifications to subscribers', async () => {
+        const primitivePart = part('primitive', 'value');
+        const otherPart = part('other', 123);
+        const store = createStore({
+          parts: [primitivePart, otherPart] as const,
+          notifier: debouncedNotify,
+        });
 
-      store.dispatch(primitivePart('next value'));
-      store.dispatch(primitivePart('third value'));
+        const listener = jest.fn();
+        store.subscribeToPart(primitivePart, listener);
 
-      await new Promise((resolve) => setTimeout(resolve, 1));
+        store.dispatch(primitivePart('next value'));
+        store.dispatch(primitivePart('third value'));
 
-      expect(listener).toHaveBeenCalledTimes(1);
+        await new Promise((resolve) => setTimeout(resolve, 1));
+
+        expect(listener).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

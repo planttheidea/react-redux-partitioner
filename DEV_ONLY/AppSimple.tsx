@@ -20,6 +20,10 @@ const store = configureStore({ reducer, enhancers: [enhancer] });
 console.log(store.getState());
 console.log(composedPart.d);
 
+store.subscribeToDispatch(() => {
+  console.log('something was dispatched', store.getState());
+});
+
 store.subscribeToPart(primitivePart, () => {
   const primitive = store.getState(primitivePart);
 
@@ -29,6 +33,10 @@ store.subscribeToPart(primitivePart, () => {
     store.dispatch(primitivePart('third value'));
   }
 });
+
+store.dispatch({ type: 'FOO' });
+store.dispatch({ type: 'BAR' });
+store.dispatch({ type: 'BAZ' });
 
 function useAfterTimeout(fn: () => void, ms: number) {
   useEffect(() => {

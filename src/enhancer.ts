@@ -60,6 +60,7 @@ export function createEnhancer<
       const store = createStore(reducer, preloadedState);
       const originalDispatch = store.dispatch;
       const originalGetState = store.getState;
+      const originalSubscribe = store.subscribe;
 
       let notifyPartsQueue: AnySelectablePart[] = [];
       let storeListeners: Listener[] | null = [];
@@ -271,6 +272,7 @@ export function createEnhancer<
         getState,
         getVersion,
         subscribe,
+        subscribeToDispatch: originalSubscribe,
         subscribeToPart,
       };
     };
