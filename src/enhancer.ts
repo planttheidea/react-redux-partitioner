@@ -60,7 +60,7 @@ export function createEnhancer<
         }
 
         for (let index = 0; index < part.d.length; ++index) {
-          addPartsToNotify(partsToNotify, part.d[index]);
+          addPartsToNotify(partsToNotify, part.d[index]!);
         }
       }
 
@@ -121,7 +121,7 @@ export function createEnhancer<
         const listeners = (storeListeners = nextStoreListeners);
 
         for (let index = 0; index < listeners.length; ++index) {
-          listeners[index]();
+          listeners[index]!();
         }
 
         const nextNotifyPartsQueue = notifyPartsQueue;
@@ -133,11 +133,11 @@ export function createEnhancer<
         // the notification tree.
         const partsToNotify: PartId[] = [];
         for (let index = 0; index < nextNotifyPartsQueue.length; ++index) {
-          addPartsToNotify(partsToNotify, nextNotifyPartsQueue[index]);
+          addPartsToNotify(partsToNotify, nextNotifyPartsQueue[index]!);
         }
 
         for (let index = 0; index < partsToNotify.length; ++index) {
-          const partListeners = partListenerMap[partsToNotify[index]];
+          const partListeners = partListenerMap[partsToNotify[index]!];
 
           if (!partListeners) {
             continue;
@@ -146,7 +146,7 @@ export function createEnhancer<
           const listeners = (partListeners[0] = partListeners[1]);
 
           for (let index = 0; index < listeners.length; ++index) {
-            listeners[index]();
+            listeners[index]!();
           }
         }
       }
@@ -155,7 +155,7 @@ export function createEnhancer<
         const descendantParts: AnyStatefulPart[] = [];
 
         for (let index = 0; index < part.c.length; ++index) {
-          queuePartsToNotify(part.c[index]);
+          queuePartsToNotify(part.c[index]!);
         }
 
         updateUniqueList(notifyPartsQueue, part);
@@ -222,7 +222,7 @@ export function createEnhancer<
         listener: Listener,
         add: boolean
       ) {
-        const partListeners = partListenerMap[part.id];
+        const partListeners = partListenerMap[part.id]!;
 
         let [, nextPartListeners] = partListeners;
 

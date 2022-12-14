@@ -7,6 +7,7 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
     "outDir": "./dist",
     "skipLibCheck": true,
     "sourceMap": true,

@@ -109,7 +109,7 @@ function createBoundSelector<
     let hasPromise = false;
 
     for (let index = 0; index < parts.length; ++index) {
-      nextValues[index] = parts[index].g(getState);
+      nextValues[index] = parts[index]!.g(getState);
 
       hasChanged = hasChanged || !is(values[index], nextValues[index]);
       hasPromise = hasPromise || isPromise(nextValues[index]);
@@ -170,7 +170,7 @@ function createStatefulGet<Part extends AnyStatefulPart>(
     let state: any = getState();
 
     for (let index = 0, length = path.length; index < length; ++index) {
-      state = state[path[index]];
+      state = state[path[index]!];
     }
 
     return state;
@@ -256,7 +256,7 @@ function getAllDescendantDependents(parts: readonly AnySelectablePart[]) {
 function getPrefixedType(path: string[], type: string): string {
   const prefix = path.slice(0, path.length - 1).join('.');
   const splitType = type.split('/');
-  const baseType = splitType[splitType.length - 1];
+  const baseType = splitType[splitType.length - 1]!;
 
   return prefix ? `${prefix}/${baseType}` : baseType;
 }

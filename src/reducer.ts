@@ -154,7 +154,7 @@ export function getInitialState<Parts extends readonly AnyStatefulPart[]>(
   const initialState = {} as State;
 
   for (let index = 0; index < parts.length; ++index) {
-    const part = parts[index];
+    const part = parts[index]!;
 
     initialState[part.n as keyof State] = part.r(
       undefined as unknown as State,

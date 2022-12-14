@@ -1,4 +1,4 @@
-import { part } from '../src';
+import { part, Unsubscribe } from '../src';
 import { createStore } from './__utils__/createStore';
 
 describe('enhancer', () => {
@@ -272,6 +272,15 @@ describe('enhancer', () => {
       );
       const squaredHalved = part([squared], (other) => other / 2);
 
+      type TestHandler = [jest.Mock, Unsubscribe];
+      type TestHandlers = [
+        TestHandler,
+        TestHandler,
+        TestHandler,
+        TestHandler,
+        TestHandler
+      ];
+
       const [
         [uppercaseListener, unsubscribeUppercase],
         [squaredListener, unsubscribeSquared],
@@ -282,9 +291,9 @@ describe('enhancer', () => {
         (part) => {
           const listener = jest.fn();
 
-          return [listener, store.subscribeToPart(part, listener)];
+          return [listener, store.subscribeToPart(part, listener)] as const;
         }
-      );
+      ) as TestHandlers;
 
       const clearAll = () =>
         [
