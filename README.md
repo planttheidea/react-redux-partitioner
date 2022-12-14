@@ -526,6 +526,21 @@ If you have listeners that rely on every dispatch and not just every state chang
 
 A reference to standard Redux `store.subscribe()` method, which will notify eagerly whenever a `dispatch` occurs regardless of whether state changes.
 
+```ts
+const todosPart = part('todos', [] as string[]);
+const { enhancer, reducer } = createPartitioner({
+  parts: [todosPart] as const,
+});
+const store = configureStore({ reducer, enhancers: [enhancer] });
+
+store.subscribeToDispatch(() => {
+  console.log('dispatched!');
+});
+
+store.dispatch({ type: 'FOO' }); // 'dispatched!'
+store.dispatch(todosPart(['do stuff'])); // 'dispatched!'
+```
+
 ### `subscribeToPart`
 
 Subscribe to changes specific to a Part, ignoring changes to other Parts in state. This works the same as [the `subscribe` method provided](#subscribe), in that only Part state changes will trigger a notification, and those notifications will be batched if a [custom notifier is applied](#batched-notification-of-subscribers).
