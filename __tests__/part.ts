@@ -9,7 +9,7 @@ describe('part', () => {
 
       expect(primitivePart('next value')).toEqual({
         $$part: primitivePart.id,
-        type: 'UPDATE_PRIMITIVE',
+        type: 'primitive/UPDATE_PRIMITIVE',
         value: 'next value',
       });
     });
@@ -38,8 +38,19 @@ describe('part', () => {
 
       expect(composedPart({ primitive: 'next value' })).toEqual({
         $$part: composedPart.id,
-        type: 'UPDATE_COMPOSED',
+        type: 'composed/UPDATE_COMPOSED',
         value: { primitive: 'next value' },
+      });
+    });
+
+    it('should update the action types for the composed parts', () => {
+      const primitivePart = part('primitive', 'value');
+      part('composed', [primitivePart]);
+
+      expect(primitivePart('next value')).toEqual({
+        $$part: primitivePart.id,
+        type: 'composed/UPDATE_PRIMITIVE',
+        value: 'next value',
       });
     });
 
