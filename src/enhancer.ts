@@ -10,7 +10,6 @@ import type {
   CombinedPartsState,
   Enhancer,
   EnhancerConfig,
-  EnhancerStoreCreator,
   Listener,
   Notify,
   PartId,
@@ -24,9 +23,7 @@ export function createEnhancer<
 >({ notifier, partMap }: EnhancerConfig): Enhancer<Parts, DispatchableAction> {
   type PartedState = CombinedPartsState<Parts>;
 
-  return function enhancer(
-    createStore: EnhancerStoreCreator<Parts, DispatchableAction>
-  ) {
+  return function enhancer(createStore) {
     return function enhance<StoreReducer extends Reducer>(
       reducer: StoreReducer,
       preloadedState: PreloadedState<PartedState> | undefined

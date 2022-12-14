@@ -17,41 +17,37 @@ export function createSuspensePromise<Result>(
   promise: Promise<Result>
 ): Promise<Result> {
   const entry: SuspensePromiseCacheEntry<Result> = {
-    c: undefined,
+    c: () => cancelSuspensePromise(entry.p),
     e: null,
-    p: undefined,
+    p: new Promise<Result>((resolve, reject) => {
+      promise.then(
+        (result) => {
+          if (entry.s === 'canceled') {
+            return;
+          }
+
+          entry.e = null;
+          entry.r = result;
+          entry.s = 'resolved';
+
+          resolve(result);
+        },
+        (error) => {
+          if (entry.s === 'canceled') {
+            return;
+          }
+
+          entry.e = error;
+          entry.r = undefined;
+          entry.s = 'rejected';
+
+          reject(error);
+        }
+      );
+    }),
     r: undefined,
     s: 'pending',
   };
-
-  entry.p = new Promise<Result>((resolve, reject) => {
-    entry.c = () => cancelSuspensePromise(entry.p);
-
-    promise.then(
-      (result) => {
-        if (entry.s === 'canceled') {
-          return;
-        }
-
-        entry.e = null;
-        entry.r = result;
-        entry.s = 'resolved';
-
-        resolve(result);
-      },
-      (error) => {
-        if (entry.s === 'canceled') {
-          return;
-        }
-
-        entry.e = error;
-        entry.r = undefined;
-        entry.s = 'rejected';
-
-        reject(error);
-      }
-    );
-  });
 
   CACHE.set(entry.p, entry);
 

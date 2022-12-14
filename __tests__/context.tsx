@@ -19,7 +19,7 @@ describe('context', () => {
       const context = useContext(ReactReduxPartitionerContext);
 
       expect(typeof context).toBe('object');
-      expect(context.store).toEqual(
+      expect(context!.store).toEqual(
         expect.objectContaining({
           dispatch: expect.any(Function),
           getState: expect.any(Function),

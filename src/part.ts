@@ -55,6 +55,7 @@ import type {
   FunctionalUpdate,
   Get,
   GetState,
+  GetValueUpdater,
   IsEqual,
   MaybePromise,
   PartAction,
@@ -515,7 +516,7 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
 
     function set(
       dispatch: Dispatch,
-      getState: GetState,
+      getState: GetState<Part['i']>,
       ...rest: Parameters<GetValue>
     ) {
       const update = getValue(...rest);
@@ -529,7 +530,10 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
       });
     }
 
-    return createUpdatePart<typeof set>({ set });
+    return createUpdatePart<GetValueUpdater<Part['i'], Parameters<GetValue>>>({
+      // @ts-expect-error - `set` types don't perfectly align, but we know them.
+      set,
+    });
   } as StatefulPartUpdater<Part['i']>;
 }
 

@@ -7,7 +7,7 @@ import type { ProviderProps, ReactReduxPartitionerContextType } from './types';
  * Context used by partitioner hooks internally.
  */
 export const ReactReduxPartitionerContext =
-  createContext<ReactReduxPartitionerContextType>(null);
+  createContext<ReactReduxPartitionerContextType | null>(null);
 
 const { Provider: ContextProvider } = ReactReduxPartitionerContext;
 

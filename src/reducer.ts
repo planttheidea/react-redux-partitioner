@@ -123,7 +123,7 @@ export function createReducer<
   }
 
   return function reducer(
-    state: CombinedState,
+    state: CombinedState | undefined,
     action: DispatchableAction
   ): CombinedState {
     if (state === undefined) {
@@ -156,7 +156,10 @@ export function getInitialState<Parts extends readonly AnyStatefulPart[]>(
   for (let index = 0; index < parts.length; ++index) {
     const part = parts[index];
 
-    initialState[part.n as keyof State] = part.r(undefined, {});
+    initialState[part.n as keyof State] = part.r(
+      undefined as unknown as State,
+      {}
+    );
   }
 
   return initialState;

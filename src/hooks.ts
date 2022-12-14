@@ -109,13 +109,13 @@ export function usePartValue<Part extends AnyPart>(
     [store, part]
   );
 
-  const result: UsePartValue<Part> = useSyncExternalStoreWithSelector(
+  const result = useSyncExternalStoreWithSelector(
     subscribe,
     store.getState,
     getServerState || store.getState,
     getSnapshot,
     is
-  );
+  ) as UsePartValue<Part>;
 
   if (!isPromise(result)) {
     return result;
@@ -128,7 +128,7 @@ export function usePartValue<Part extends AnyPart>(
   }
 
   if (entry.s === 'resolved') {
-    return entry.r;
+    return entry.r!;
   }
 
   if (entry.s === 'rejected') {
