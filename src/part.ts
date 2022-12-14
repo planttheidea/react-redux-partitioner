@@ -94,6 +94,25 @@ function createBoundSelector<
   let stateVersion: number;
 
   return function select(getState: GetState): Result {
+    const nextValues = [] as Values;
+
+    let hasPromise = false;
+
+    // @ts-expect-error - v is a hidden method to check the version of state.
+    if (!getState.v) {
+      for (let index = 0; index < parts.length; ++index) {
+        nextValues[index] = parts[index]!.g(getState);
+
+        hasPromise = hasPromise || isPromise(nextValues[index]);
+      }
+
+      return hasPromise
+        ? Promise.all(nextValues).then((resolvedValues) =>
+            get(...(resolvedValues as Values))
+          )
+        : get(...nextValues);
+    }
+
     // @ts-expect-error - v is a hidden method to check the version of state.
     const nextVersion = getState.v();
 
@@ -103,10 +122,7 @@ function createBoundSelector<
 
     stateVersion = nextVersion;
 
-    const nextValues = [] as Values;
-
     let hasChanged = !values;
-    let hasPromise = false;
 
     for (let index = 0; index < parts.length; ++index) {
       nextValues[index] = parts[index]!.g(getState);
@@ -181,12 +197,7 @@ function createStateSelector<Selector extends (getState: GetState) => any>(
   select: Selector
 ) {
   return function selectFromState<State>(state: State) {
-    let version = 0;
-
-    const getState = createGetState(
-      () => state,
-      () => version++
-    );
+    const getState = createGetState(() => state);
 
     return select(getState);
   };
@@ -222,6 +233,11 @@ function createUnboundSelector<Selector extends AnyGenericSelector>(
   let stateVersion: number;
 
   return function select(getState: GetState): ReturnType<Selector> {
+    // @ts-expect-error - v is a hidden method to check the version of state.
+    if (!getState.v) {
+      return get(getState);
+    }
+
     // @ts-expect-error - v is a hidden method to check the version of state.
     const nextVersion = getState.v();
 

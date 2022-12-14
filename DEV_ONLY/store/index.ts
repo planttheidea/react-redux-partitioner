@@ -6,14 +6,18 @@ import {
   type AnyAction,
   type Middleware,
 } from 'redux';
+import createSagaMiddleware from 'redux-saga';
+import { call, select, take } from 'redux-saga/effects';
 
 import {
   createPartitioner,
-  type Store,
+  part,
+  type PartAction,
   type PartsStoreExtensions,
+  type Store,
 } from '../../src';
 
-import { storeParts } from './parts';
+import { storeParts, todosPart, type Todo } from './parts';
 
 const legacy = (state = 'legacy', action: AnyAction) => {
   return action.type === 'LEGACY' ? 'modern' : state;
@@ -37,6 +41,27 @@ const logger: Middleware<MyStore> = () => (next) => (action) => {
   }
   return result;
 };
+
+const sagaMiddleware = createSagaMiddleware();
+
+export const selectTodos = part([todosPart], (todos) => todos);
+
+function* logTodos(action: PartAction<Todo[]>, before: Todo[]) {
+  console.log('-----------');
+  yield call(console.log, 'before', before);
+  yield call(console.log, 'action', action.value);
+  yield call(console.log, 'state', yield select(selectTodos));
+  console.log('-----------');
+}
+
+function* mySaga() {
+  while (true) {
+    const before = yield select(selectTodos);
+    const action = yield take(todosPart);
+
+    yield call(logTodos, action, before);
+  }
+}
 
 function debounce<Fn extends (notify: () => void) => void>(fn: Fn, ms = 0): Fn {
   let id: ReturnType<typeof setTimeout> | null = null;
@@ -63,7 +88,10 @@ const composeEnhancers =
   // @ts-expect-error - Devtools not on window type
   window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
-const reduxStoreEnhancer = composeEnhancers(applyMiddleware(logger), enhancer);
+const reduxStoreEnhancer = composeEnhancers(
+  applyMiddleware(sagaMiddleware, logger),
+  enhancer
+);
 
 export const store = createStore<
   ReduxState,
@@ -74,6 +102,12 @@ export const store = createStore<
 
 export const storeConfigured = configureStore({
   reducer,
-  middleware: (getDefaultMiddleware) => [logger, ...getDefaultMiddleware()],
+  middleware: (getDefaultMiddleware) => [
+    sagaMiddleware,
+    logger,
+    ...getDefaultMiddleware(),
+  ],
   enhancers: [enhancer],
 });
+
+sagaMiddleware.run(mySaga);

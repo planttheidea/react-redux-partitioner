@@ -1,7 +1,9 @@
 import { ReduxState } from '.';
 import { part } from '../../src';
 
-export const todosPart = part('todos', [] as string[]);
+export type Todo = string;
+
+export const todosPart = part('todos', [] as Todo[]);
 export const titlePart = part({
   name: 'title',
   initialState: 'Todos',

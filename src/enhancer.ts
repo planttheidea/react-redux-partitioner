@@ -26,7 +26,7 @@ import type {
 
 export function createGetState<State>(
   originalGetState: ReduxStore<State>['getState'],
-  getVersion: () => number
+  getVersion?: () => number
 ): GetState<State> {
   function getState<Part extends AnySelectPart | AnyStatefulPart>(
     part?: Part
@@ -36,12 +36,14 @@ export function createGetState<State>(
       : originalGetState();
   }
 
-  /**
-   * Hidden method to get the version of state changes, to help with async selectors
-   * both be more efficient but also potentially avoid infinite render loops whe used
-   * with Suspense.
-   */
-  getState.v = getVersion;
+  if (getVersion) {
+    /**
+     * Hidden method to get the version of state changes, to help with async selectors
+     * both be more efficient but also potentially avoid infinite render loops whe used
+     * with Suspense.
+     */
+    getState.v = getVersion;
+  }
 
   return getState;
 }

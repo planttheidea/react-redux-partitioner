@@ -1,11 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import React, { useCallback, useRef, useState } from 'react';
+import createSagaMiddleware from 'redux-saga';
+import { call, select, take } from 'redux-saga/effects';
 import {
   Provider,
   createPartitioner,
   part,
   usePart,
   usePartValue,
+  type PartAction,
 } from '../src';
 
 const titlePart = part('title', 'My todos list');
@@ -19,13 +22,40 @@ interface Todo {
 
 const todosPart = part('todos', [] as Todo[]);
 
+const sagaMiddleware = createSagaMiddleware();
+
+export const selectTodos = part([todosPart], (todos) => todos);
+
+function* logTodos(action: PartAction<Todo[]>, before: Todo[]) {
+  console.log('-----------');
+  yield call(console.log, 'before', before);
+  yield call(console.log, 'action', action.value);
+  yield call(console.log, 'state', yield select(selectTodos));
+  console.log('-----------');
+}
+
+function* mySaga() {
+  while (true) {
+    const before = yield select(selectTodos);
+    const action = yield take(todosPart);
+
+    yield call(logTodos, action, before);
+  }
+}
+
 const parts = [titlePart, descriptionPart, todosPart] as const;
 const { enhancer, reducer } = createPartitioner({ parts });
 
 export const store = configureStore({
   reducer,
+  middleware: (getDefaultMiddleware) => [
+    sagaMiddleware,
+    ...getDefaultMiddleware(),
+  ],
   enhancers: [enhancer],
 });
+
+sagaMiddleware.run(mySaga);
 
 function Title() {
   const [title] = usePart(titlePart);
