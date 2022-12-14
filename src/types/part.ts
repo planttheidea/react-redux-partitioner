@@ -265,7 +265,7 @@ export interface BoundSelectPart<
    * Method that receives a store's `getState` method, and returns a value
    * derived by the resolved values of the specific Parts in state provided.
    */
-  (getState: GetState): MaybePromise<ReturnType<Selector>>;
+  <State = any>(state: State): MaybePromise<ReturnType<Selector>>;
 
   /**
    * The [g]etter used to derive a value based on the resolved value
@@ -280,7 +280,7 @@ export interface UnboundSelectPart<Selector extends AnyGenericSelector>
    * Method that receives a store's `getState` method, and returns a value
    * derived by values in state.
    */
-  (getState: GetState): ReturnType<Selector>;
+  <State = any>(state: State): ReturnType<Selector>;
 
   /**
    * The [g]etter used to derive a value based on the values in state.
@@ -406,7 +406,7 @@ export interface BoundProxyPart<
    * Method that receives a store's `getState` method, and returns a value
    * derived by the resolved values of the specific Parts in state provided.
    */
-  select(getState: GetState): MaybePromise<ReturnType<Selector>>;
+  select<State>(state: State): MaybePromise<ReturnType<Selector>>;
 
   /**
    * The [g]etter used to derive a value based on the resolved value
@@ -427,7 +427,7 @@ export interface UnboundProxyPart<
    * Method that receives a store's `getState` method, and returns a value
    * derived by values in state.
    */
-  select(getState: GetState): ReturnType<Selector>;
+  select<State>(state: State): ReturnType<Selector>;
 
   /**
    * The [g]etter used to derive a value based on the values in state.

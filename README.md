@@ -272,13 +272,28 @@ Notice above the [`usePartValue` hook](#usepartvalue) is used instead of `usePar
 You can also call the selector outside the scope of a React tree:
 
 ```ts
-const priorityTodos = priorityTodosPart(store.getState);
+const priorityTodos = priorityTodosPart(store.getState());
 ```
 
-Unlike traditional selectors which receive the state object as the first argument, selectors expect the `getState` method itself. Therefore, if you want to use this in combination with other utilities like `select` from [`redux-saga`](https://redux-saga.js.org/), you'll need to create a simple wrapper:
+Since the selector receives the state object as the first parameter, you can use it in combination with other utilities such as [`reselect`](https://github.com/reduxjs/reselect) or `select` from [`redux-saga`](https://redux-saga.js.org/):
 
 ```ts
-const priorityTodos = yield select(() => priorityTodosPart(store.getState));
+const priorityTodos = yield select(priorityTodosPart);
+```
+
+However, unlike traditional selectors which can receive additional arguments, selectors will only ever receive the state. Therefore, if you want to use this in combination with other values, you'll need to create a superset selector. Example using `reselect`:
+
+```ts
+import { createSelector } from 'reselect';
+
+const selectMatchingPriorityTodos = createSelector(
+  priorityTodosPart,
+  (_: State, searchParam: string) => searchParam,
+  (todos, searchParam) =>
+    todos.filter((todo) => todo.value.inclures(searchParam))
+);
+
+const priorityTodos = yield select(selectMatchingPriorityTodos, serachParam);
 ```
 
 #### Non-Part selectors

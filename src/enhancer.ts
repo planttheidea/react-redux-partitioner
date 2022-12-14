@@ -2,7 +2,13 @@ import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import { noop, updateUniqueList } from './utils';
 import { isPartAction, isSelectablePart } from './validate';
 
-import type { Action, AnyAction, PreloadedState, Reducer } from 'redux';
+import type {
+  Action,
+  AnyAction,
+  PreloadedState,
+  Reducer,
+  Store as ReduxStore,
+} from 'redux';
 import type {
   AnySelectPart,
   AnySelectablePart,
@@ -10,12 +16,35 @@ import type {
   CombinedPartsState,
   Enhancer,
   EnhancerConfig,
+  GetState,
   Listener,
   Notify,
   PartId,
   PartState,
   Unsubscribe,
 } from './types';
+
+export function createGetState<State>(
+  originalGetState: ReduxStore<State>['getState'],
+  getVersion: () => number
+): GetState<State> {
+  function getState<Part extends AnySelectPart | AnyStatefulPart>(
+    part?: Part
+  ): Part extends any ? PartState<Part> : State {
+    return part && isSelectablePart(part)
+      ? part.g(getState)
+      : originalGetState();
+  }
+
+  /**
+   * Hidden method to get the version of state changes, to help with async selectors
+   * both be more efficient but also potentially avoid infinite render loops whe used
+   * with Suspense.
+   */
+  getState.v = getVersion;
+
+  return getState;
+}
 
 export function createEnhancer<
   Parts extends readonly AnyStatefulPart[],
@@ -92,26 +121,7 @@ export function createEnhancer<
         return result;
       }
 
-      function getState(): PartedState;
-      function getState<
-        Part extends AnySelectPart | AnyStatefulPart | undefined
-      >(part: Part): PartState<Part>;
-      function getState<
-        Part extends AnySelectPart | AnyStatefulPart | undefined
-      >(part?: Part): Part extends any ? PartState<Part> : PartedState {
-        return part && isSelectablePart(part)
-          ? part.g(getState)
-          : originalGetState();
-      }
-
-      /**
-       * Hidden method to get the version of state changes, to help with async selectors
-       * both be more efficient but also potentially avoid infinite render loops whe used
-       * with Suspense.
-       */
-      getState.v = function () {
-        return version;
-      };
+      const getState = createGetState(originalGetState, () => version);
 
       function notify() {
         batch(notifyListeners);

@@ -1,4 +1,5 @@
 import { type Dispatch } from 'redux';
+import { createSelector } from 'reselect';
 import { part, type GetState } from '../src';
 import { createStore } from './__utils__/createStore';
 
@@ -126,7 +127,7 @@ describe('part', () => {
         primitive.toUpperCase()
       );
 
-      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(selectUppercasePrimitive(store.getState())).toEqual('VALUE');
     });
 
     it('should be a general selector, if no parts are provided', () => {
@@ -137,7 +138,7 @@ describe('part', () => {
         getState(primitivePart).toUpperCase()
       );
 
-      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(selectUppercasePrimitive(store.getState())).toEqual('VALUE');
     });
 
     it('should support nesting of selectors', () => {
@@ -160,10 +161,12 @@ describe('part', () => {
         (primitive) => primitive.split('').reverse().join('')
       );
 
-      expect(selectUppercasePrimitive(store.getState)).toEqual('VALUE');
-      expect(selectReverseUppercasePrimitive(store.getState)).toEqual('EULAV');
-      expect(selectReversePrimitive(store.getState)).toEqual('eulav');
-      expect(selectOriginalPrimitive(store.getState)).toEqual('value');
+      const state = store.getState();
+
+      expect(selectUppercasePrimitive(state)).toEqual('VALUE');
+      expect(selectReverseUppercasePrimitive(state)).toEqual('EULAV');
+      expect(selectReversePrimitive(state)).toEqual('eulav');
+      expect(selectOriginalPrimitive(state)).toEqual('value');
     });
 
     it('should support async selectors for the part', async () => {
@@ -175,7 +178,7 @@ describe('part', () => {
         async (primitive) => primitive.toUpperCase()
       );
 
-      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(await selectUppercasePrimitive(store.getState())).toEqual('VALUE');
     });
 
     it('should be a general async selector, if no parts are provided', async () => {
@@ -186,7 +189,7 @@ describe('part', () => {
         getState(primitivePart).toUpperCase()
       );
 
-      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
+      expect(await selectUppercasePrimitive(store.getState())).toEqual('VALUE');
     });
 
     it('should support nesting of selectors, both async and sync', async () => {
@@ -210,12 +213,29 @@ describe('part', () => {
         (primitive) => primitive.split('').reverse().join('')
       );
 
-      expect(await selectUppercasePrimitive(store.getState)).toEqual('VALUE');
-      expect(await selectReverseUppercasePrimitive(store.getState)).toEqual(
-        'EULAV'
+      const state = store.getState();
+
+      expect(await selectUppercasePrimitive(state)).toEqual('VALUE');
+      expect(await selectReverseUppercasePrimitive(state)).toEqual('EULAV');
+      expect(await selectReversePrimitive(state)).toEqual('eulav');
+      expect(await selectOriginalPrimitive(state)).toEqual('value');
+    });
+
+    it('should work with third-party libraries like `reselect`', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore({ parts: [primitivePart] as const });
+
+      const selectUppercasePrimitive = part([primitivePart], (primitive) =>
+        primitive.toUpperCase()
       );
-      expect(await selectReversePrimitive(store.getState)).toEqual('eulav');
-      expect(await selectOriginalPrimitive(store.getState)).toEqual('value');
+      const isPrimitiveValue = createSelector(
+        selectUppercasePrimitive,
+        (_: any, searchParam: string) => searchParam,
+        (primitive, searchParam) => primitive === searchParam
+      );
+
+      expect(isPrimitiveValue(store.getState(), 'VALUE')).toBe(true);
+      expect(isPrimitiveValue(store.getState(), 'value')).toBe(false);
     });
   });
 
@@ -272,7 +292,7 @@ describe('part', () => {
         (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
       );
 
-      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
+      expect(uppercasePrimitiveProxy.select(store.getState())).toEqual('VALUE');
     });
 
     it('should have a general selector, if no parts are provided', () => {
@@ -284,7 +304,7 @@ describe('part', () => {
         (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
       );
 
-      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
+      expect(uppercasePrimitiveProxy.select(store.getState())).toEqual('VALUE');
     });
 
     it('should support nesting of selectors', () => {
@@ -318,12 +338,12 @@ describe('part', () => {
         setPrimitive
       );
 
-      expect(uppercasePrimitiveProxy.select(store.getState)).toEqual('VALUE');
-      expect(reverseUppercasePrimitiveProxy.select(store.getState)).toEqual(
-        'EULAV'
-      );
-      expect(reversePrimitiveProxy.select(store.getState)).toEqual('eulav');
-      expect(originalPrimitiveProxy.select(store.getState)).toEqual('value');
+      const state = store.getState();
+
+      expect(uppercasePrimitiveProxy.select(state)).toEqual('VALUE');
+      expect(reverseUppercasePrimitiveProxy.select(state)).toEqual('EULAV');
+      expect(reversePrimitiveProxy.select(state)).toEqual('eulav');
+      expect(originalPrimitiveProxy.select(state)).toEqual('value');
     });
 
     it('should support async selectors for the part', async () => {
@@ -336,7 +356,7 @@ describe('part', () => {
         (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
       );
 
-      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
+      expect(await uppercasePrimitiveProxy.select(store.getState())).toEqual(
         'VALUE'
       );
     });
@@ -350,7 +370,7 @@ describe('part', () => {
         (dispatch, _getState, nextValue) => dispatch(primitivePart(nextValue))
       );
 
-      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
+      expect(await uppercasePrimitiveProxy.select(store.getState())).toEqual(
         'VALUE'
       );
     });
@@ -386,18 +406,14 @@ describe('part', () => {
         setPrimitive
       );
 
-      expect(await uppercasePrimitiveProxy.select(store.getState)).toEqual(
-        'VALUE'
+      const state = store.getState();
+
+      expect(await uppercasePrimitiveProxy.select(state)).toEqual('VALUE');
+      expect(await reverseUppercasePrimitiveProxy.select(state)).toEqual(
+        'EULAV'
       );
-      expect(
-        await reverseUppercasePrimitiveProxy.select(store.getState)
-      ).toEqual('EULAV');
-      expect(await reversePrimitiveProxy.select(store.getState)).toEqual(
-        'eulav'
-      );
-      expect(await originalPrimitiveProxy.select(store.getState)).toEqual(
-        'value'
-      );
+      expect(await reversePrimitiveProxy.select(state)).toEqual('eulav');
+      expect(await originalPrimitiveProxy.select(state)).toEqual('value');
     });
 
     it('should have an updater', () => {

@@ -72,6 +72,7 @@ import type {
   UpdatePartArgs,
   UpdatePartConfig,
 } from './types';
+import { createGetState } from './enhancer';
 
 function cancelRunningSuspensePromise(promise: Promise<unknown>): void {
   const entry = isPromise(promise) && getSuspensePromiseCacheEntry(promise);
@@ -173,6 +174,21 @@ function createStatefulGet<Part extends AnyStatefulPart>(
     }
 
     return state;
+  };
+}
+
+function createStateSelector<Selector extends (getState: GetState) => any>(
+  select: Selector
+) {
+  return function selectFromState<State>(state: State) {
+    let version = 0;
+
+    const getState = createGetState(
+      () => state,
+      () => version++
+    );
+
+    return select(getState);
   };
 }
 
@@ -391,7 +407,7 @@ export function createBoundSelectPart<
   const { get, isEqual = is, parts } = config;
 
   const select = createBoundSelector(parts, get, isEqual);
-  const part = select as BoundSelectPart<Parts, Selector>;
+  const part = createStateSelector(select) as BoundSelectPart<Parts, Selector>;
 
   part.id = getId();
 
@@ -412,7 +428,7 @@ export function createUnboundSelectPart<Selector extends AnyGenericSelector>(
   const { get, isEqual = is } = config;
 
   const select = createUnboundSelector(get, isEqual);
-  const part = select as UnboundSelectPart<Selector>;
+  const part = createStateSelector(select) as UnboundSelectPart<Selector>;
 
   part.id = getId();
 
@@ -440,7 +456,7 @@ export function createBoundProxyPart<
   const part = {} as BoundProxyPart<Parts, Selector, Updater>;
 
   part.id = getId();
-  part.select = select;
+  part.select = createStateSelector(select);
   part.update = update;
 
   part.b = true;
@@ -468,7 +484,7 @@ export function createUnboundProxyPart<
   const part = {} as UnboundProxyPart<Selector, Updater>;
 
   part.id = getId();
-  part.select = select;
+  part.select = createStateSelector(select);
   part.update = update;
 
   part.b = false;
