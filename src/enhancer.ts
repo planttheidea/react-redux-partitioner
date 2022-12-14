@@ -17,6 +17,7 @@ import type {
   Enhancer,
   EnhancerConfig,
   GetState,
+  GetVersion,
   Listener,
   Notify,
   PartId,
@@ -26,23 +27,14 @@ import type {
 
 export function createGetState<State>(
   originalGetState: ReduxStore<State>['getState'],
-  getVersion?: () => number
+  getVersion?: GetVersion
 ): GetState<State> {
   function getState<Part extends AnySelectPart | AnyStatefulPart>(
     part?: Part
   ): Part extends any ? PartState<Part> : State {
     return part && isSelectablePart(part)
-      ? part.g(getState)
+      ? part.g(getState, getVersion)
       : originalGetState();
-  }
-
-  if (getVersion) {
-    /**
-     * Hidden method to get the version of state changes, to help with async selectors
-     * both be more efficient but also potentially avoid infinite render loops whe used
-     * with Suspense.
-     */
-    getState.v = getVersion;
   }
 
   return getState;
@@ -124,6 +116,10 @@ export function createEnhancer<
       }
 
       const getState = createGetState(originalGetState, () => version);
+
+      function getVersion(): number {
+        return version;
+      }
 
       function notify() {
         batch(notifyListeners);
@@ -273,6 +269,7 @@ export function createEnhancer<
         ...store,
         dispatch,
         getState,
+        getVersion,
         subscribe,
         subscribeToPart,
       };

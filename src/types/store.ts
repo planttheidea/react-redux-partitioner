@@ -4,6 +4,7 @@ import type {
   Dispatch as BaseDispatch,
   Store as ReduxStore,
 } from 'redux';
+import type { PartsStoreExtensions } from './enhancer';
 import type { AnyPart, AnySelectablePart, PartId, PartState } from './part';
 import type { Listener, Unsubscribe } from './subscription';
 import type { Thunk } from './utils';
@@ -17,6 +18,8 @@ export interface GetState<State = any> {
   <CompleteState extends State>(): CompleteState;
   <Part extends AnyPart>(part: Part): PartState<Part>;
 }
+
+export type GetVersion = () => number;
 
 export interface PartAction<Value = any> extends Action {
   $$part: PartId;
@@ -33,12 +36,3 @@ export type Store<
   DispatchableAction extends Action = AnyAction
 > = ReduxStore<State, DispatchableAction> &
   PartsStoreExtensions<State, DispatchableAction>;
-
-export interface PartsStoreExtensions<
-  State = any,
-  DispatchableAction extends Action = AnyAction
-> {
-  dispatch: Dispatch<DispatchableAction>;
-  getState: GetState<State>;
-  subscribeToPart: SubscribeToPart;
-}

@@ -105,7 +105,10 @@ export function usePartValue<Part extends AnyPart>(
   );
 
   const getSnapshot = useMemo(
-    () => (isSelectablePart(part) ? () => part.g(store.getState) : noop),
+    () =>
+      isSelectablePart(part)
+        ? () => part.g(store.getState, store.getVersion)
+        : noop,
     [store, part]
   );
 

@@ -8,7 +8,7 @@ import type {
   STATEFUL_PART,
   UPDATE_PART,
 } from '../flags';
-import type { Dispatch, GetState, PartAction } from './store';
+import type { Dispatch, GetState, GetVersion, PartAction } from './store';
 import type {
   FunctionalUpdate,
   IsEqual,
@@ -40,8 +40,14 @@ export type CombinedPartsState<Parts extends Tuple<AnyStatefulPart>> =
   CombineState<{}, [...Parts]>;
 export type AnyPartsState = CombinedPartsState<AnyStatefulPart[]>;
 
-export type Get<State> = (getState: GetState) => State;
-export type GetSelector<State> = (getState: GetState) => MaybePromise<State>;
+export type Get<State> = (
+  getState: GetState,
+  getVersion: GetVersion | undefined
+) => State;
+export type GetSelector<State> = (
+  getState: GetState,
+  getVersion: GetVersion | undefined
+) => MaybePromise<State>;
 export type Set<State> = (
   dispatch: Dispatch,
   getState: GetState<State>,

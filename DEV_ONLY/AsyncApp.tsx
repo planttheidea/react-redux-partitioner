@@ -60,9 +60,9 @@ const store = configureStore({ reducer, enhancers: [enhancer] });
 
 function Id() {
   const [id] = usePart(postIdPart);
-  const props = useSpring({ from: { id }, id, reset: true });
+  const springProps = useSpring({ from: { id }, id, reset: true });
 
-  return <a.h1>{props.id.to(Math.round)}</a.h1>;
+  return <a.h1>{springProps.id.to(Math.round)}</a.h1>;
 }
 
 function Next() {

@@ -55,6 +55,7 @@ import type {
   FunctionalUpdate,
   Get,
   GetState,
+  GetVersion,
   IsEqual,
   MaybePromise,
   PartAction,
@@ -89,43 +90,34 @@ function createBoundSelector<
   type Values = SelectPartArgs<Parts>;
   type Result = MaybePromise<ReturnType<Selector>>;
 
+  const size = parts.length;
+
   let values: Values;
   let result: Result;
   let stateVersion: number;
 
-  return function select(getState: GetState): Result {
+  return function select(
+    getState: GetState,
+    getVersion: GetVersion | undefined
+  ): Result {
     const nextValues = [] as Values;
 
     let hasPromise = false;
 
-    // @ts-expect-error - v is a hidden method to check the version of state.
-    if (!getState.v) {
-      for (let index = 0; index < parts.length; ++index) {
-        nextValues[index] = parts[index]!.g(getState);
+    if (getVersion) {
+      const nextVersion = getVersion();
 
-        hasPromise = hasPromise || isPromise(nextValues[index]);
+      if (nextVersion === stateVersion) {
+        return result;
       }
 
-      return hasPromise
-        ? Promise.all(nextValues).then((resolvedValues) =>
-            get(...(resolvedValues as Values))
-          )
-        : get(...nextValues);
+      stateVersion = nextVersion;
     }
-
-    // @ts-expect-error - v is a hidden method to check the version of state.
-    const nextVersion = getState.v();
-
-    if (nextVersion === stateVersion) {
-      return result;
-    }
-
-    stateVersion = nextVersion;
 
     let hasChanged = !values;
 
-    for (let index = 0; index < parts.length; ++index) {
-      nextValues[index] = parts[index]!.g(getState);
+    for (let index = 0; index < size; ++index) {
+      nextValues[index] = parts[index]!.g(getState, getVersion);
 
       hasChanged = hasChanged || !is(values[index], nextValues[index]);
       hasPromise = hasPromise || isPromise(nextValues[index]);
@@ -193,13 +185,16 @@ function createStatefulGet<Part extends AnyStatefulPart>(
   };
 }
 
-function createStateSelector<Selector extends (getState: GetState) => any>(
-  select: Selector
-) {
+function createStateSelector<
+  Selector extends (
+    getState: GetState,
+    getVersion: GetVersion | undefined
+  ) => any
+>(select: Selector) {
   return function selectFromState<State>(state: State) {
     const getState = createGetState(() => state);
 
-    return select(getState);
+    return select(getState, undefined);
   };
 }
 
@@ -218,7 +213,7 @@ function createStatefulSet<Part extends AnyStatefulPart>(
 ): Set<Part['i']> {
   return function set(dispatch, getState, update) {
     const nextValue = isFunctionalUpdate<Part['i']>(update)
-      ? update(part.g(getState))
+      ? update(getState(part))
       : update;
 
     return dispatch(part(nextValue));
@@ -232,20 +227,19 @@ function createUnboundSelector<Selector extends AnyGenericSelector>(
   let result: ReturnType<Selector>;
   let stateVersion: number;
 
-  return function select(getState: GetState): ReturnType<Selector> {
-    // @ts-expect-error - v is a hidden method to check the version of state.
-    if (!getState.v) {
-      return get(getState);
+  return function select(
+    getState: GetState,
+    getVersion: GetVersion | undefined
+  ): ReturnType<Selector> {
+    if (getVersion) {
+      const nextVersion = getVersion();
+
+      if (nextVersion === stateVersion) {
+        return result;
+      }
+
+      stateVersion = nextVersion;
     }
-
-    // @ts-expect-error - v is a hidden method to check the version of state.
-    const nextVersion = getState.v();
-
-    if (nextVersion === stateVersion) {
-      return result;
-    }
-
-    stateVersion = nextVersion;
 
     const nextResult = get(getState);
 
@@ -506,7 +500,7 @@ export function createUnboundProxyPart<
   part.b = false;
   part.d = [];
   part.f = PROXY_PART as UnboundProxyPart<Selector, Updater>['f'];
-  part.g = get;
+  part.g = select;
   part.s = set;
 
   return part;
@@ -553,7 +547,7 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
     ) {
       const update = getValue(...rest);
       const nextValue = isFunctionalUpdate(update)
-        ? update(part.g(getState))
+        ? update(getState(part))
         : update;
 
       return dispatch<PartAction<Part['i']>>({
