@@ -5,9 +5,7 @@
     "url": "https://github.com/planttheidea/react-redux-partitioner/issues"
   },
   "dependencies": {
-    "react": ">=16.8.0",
-    "redux": "^4.0.0",
-    "redux-thunk": "^2.0.0",
+    "@types/use-sync-external-store": "^0.0.3",
     "use-sync-external-store": "^1.2.0"
   },
   "description": "A simple and performant way to manage Redux state.",
@@ -25,7 +23,6 @@
     "@types/jest": "^29.2.4",
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.9",
-    "@types/use-sync-external-store": "^0.0.3",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
     "@typescript-eslint/parser": "^5.46.1",
     "eslint": "^8.28.0",
@@ -35,7 +32,7 @@
     "html-webpack-plugin": "^5.5.0",
     "jest": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
-    "react-dom": ">=16.8.0",
+    "react-dom": "^18.2.0",
     "redux-saga": "^1.2.2",
     "release-it": "^15.5.0",
     "reselect": "^4.1.7",
@@ -72,6 +69,23 @@
   "main": "dist/cjs/index.cjs",
   "module": "dist/esm/index.mjs",
   "name": "react-redux-partitioner",
+  "peerDependencies": {
+    "@types/react": "^16.8 || ^17.0 || ^18.0",
+    "react": "^16.8 || ^17.0 || ^18.0",
+    "redux": "^4",
+    "redux-thunk": "^2"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    },
+    "redux": {
+      "optional": true
+    },
+    "redux-thunk": {
+      "optional": true
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/planttheidea/react-redux-partitioner.git"
