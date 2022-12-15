@@ -4,8 +4,9 @@ A simple and performant way to manage Redux state.
 
 - [react-redux-partitioner](#react-redux-partitioner)
   - [Premise](#premise)
-  - [Usage example](#usage-example)
-  - [Store setup](#store-setup)
+  - [Requirements:](#requirements)
+  - [Usage](#usage)
+    - [Store setup](#store-setup)
   - [Hooks](#hooks)
     - [`usePart`](#usepart)
     - [`usePartValue`](#usepartvalue)
@@ -15,6 +16,7 @@ A simple and performant way to manage Redux state.
       - [Action creators](#action-creators)
       - [Stateful Update Parts](#stateful-update-parts)
     - [Select Parts](#select-parts)
+      - [Use outside of React](#use-outside-of-react)
       - [Non-Part selectors](#non-part-selectors)
       - [Async selectors](#async-selectors)
     - [Update Parts](#update-parts)
@@ -28,6 +30,7 @@ A simple and performant way to manage Redux state.
     - [`subscribeToDispatch`](#subscribetodispatch)
     - [`subscribeToPart`](#subscribetopart)
     - [Batched notification of subscribers](#batched-notification-of-subscribers)
+  - [Related libraries](#related-libraries)
 
 ## Premise
 
@@ -35,9 +38,16 @@ A simple and performant way to manage Redux state.
 
 Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Creation of these "atoms" is simple and straightforward, and unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state. The convention that aligns with the React `useState` convention, which is familiar and approachable. However, these managers are very difficult (in some cases, impossible) to work with outside the scope of React, and they lack a centralized pipeline that help with edge-case requirements.
 
-`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Components only perform work when the specific part of state they care about change, which improves performance (the larger the scale, the bigger the gains). All state updates go through the Redux dispatch pipeline, which allows for the full power of Redux to be used. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures.
+`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Components only perform work when the specific part of state they care about change, which improves performance (the larger the scale, the bigger the gains). All state updates go through the Redux dispatch pipeline, which allows for the full power of Redux to be used. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures. It can work side-by-side with `react-redux`, or potentially replace it entirely if you have no need for `connect`.
 
-## Usage example
+## Requirements:
+
+- `redux` - at least v4
+- `redux-thunk` - official middleware of `redux`, automatically included when using default `configureStore` setups
+
+If using TypeScript, it is recommended to use 4.7+. A lot of inference and tuple use drives the typing, and support is missing from older TS versions.
+
+## Usage
 
 ```tsx
 import { usePart } from 'react-redux-partitioner';
@@ -90,34 +100,41 @@ function TodoList() {
 
 `usePart` provides the standard `useState` interface for both reads and writes, but there are [other hooks](#hooks) for more targeted use-cases as needed.
 
-## Store setup
+### Store setup
 
-```tsx
-// create the parts of state involved
-import { part } from 'react-redux-partitioner';
+Create the parts of state involved, and add them to the store:
+
+```ts
+import { configureStore } from '@reduxjs/toolkit';
+import { createPartitioner, part } from 'react-redux-partitioner';
+
+export type Todo = { id: number; value: string };
 
 export const titlePart = part('title', 'My todos');
 export const descriptionPart = part('description', 'A simple list of todos');
-
-interface Todo {
-  id: number;
-  value: string;
-}
 export const todosPart = part('todos', [] as Todo[]);
 
-// create the reducer and store enhancer
-import { createPartitioner } from 'react-redux-partitioner';
+const { enhancer, reducer } = createPartitioner({
+  parts: [titlePart, descriptionPart, todosPart] as const,
+});
 
-const parts = [titlePart, descriptionPart, todosPart] as const;
-const { enhancer, reducer } = createPartitioner({ parts });
-
-// create your store
-import { configureStore } from '@reduxjs/toolkit';
-
-const store = configureStore({ reducer, enhancers: [enhancer] });
+export const store = configureStore({ reducer, enhancers: [enhancer] });
 ```
 
-The enhancer will provide some extra goodies on the `store` object which are detailed in [Store enhancements](#store-enhancements), but will also set up the targeted update infrastructure for components.
+Wrap your app in a `Provider`, which receives the `store`:
+
+```tsx
+import { Provider } from 'react-redux-partitioner';
+import { store } from './store';
+
+export function App() {
+  return (
+    <Provider store={store}>
+      <MyApp />
+    </Provider>
+  );
+}
+```
 
 ## Hooks
 
@@ -175,6 +192,13 @@ const firstNamePart = part('first', 'Testy');
 const lastNamePart = part('last', 'McTesterson');
 const namePart = part('name', [firstNamePart, lastNamePart]);
 const userPart = part('user', [idPart, namePart]);
+```
+
+You can also create a Stateful Part with an object configuration, if desired:
+
+```ts
+const statefulPart = part({ name: 'partName', initialState: 'initial value' });
+const composedStatefulPart = part({ name: 'namespace', parts: [statefulPart] });
 ```
 
 #### Action creators
@@ -270,6 +294,29 @@ function TodoList() {
 ```
 
 Notice above the [`usePartValue` hook](#usepartvalue) is used instead of `usePart`. While both hooks will work, it is generally a good convention to use `usePartValue` with Select Parts since the update method cannot be used.
+
+You can also create a Select Part with an object configuration, if desired:
+
+```ts
+const priorityTodosPart = part({
+  parts: [todosPart],
+  get: (todos) => todos.filter((todo) => todo.value.endsWith('(P)')),
+});
+```
+
+The object configuration is the only way to provide a custom equality checker for the selector:
+
+```ts
+const priorityTodosPart = part({
+  parts: [todosPart],
+  get: (todos) => todos.filter((todo) => todo.value.endsWith('(P)')),
+  isEqual: (prev, next) =>
+    prev.length === next.length &&
+    next.every((item, index) => next === prev[index]),
+});
+```
+
+#### Use outside of React
 
 You can also call the selector outside the scope of a React tree:
 
@@ -401,6 +448,24 @@ store.dispatch(resetAppPart('Next title', 'Next description'));
 
 Please note that if an `extraArgument` is provided to `redux-thunk`, it will not be available.
 
+You can also create an Update Part with an object configuration, if desired:
+
+```ts
+const resetAppPart = part({
+  set: (dispatch, getState, nextTitle: string, nextDescription: string) => {
+    if (nextTitle) {
+      dispatch(titlePart(nextTitle));
+    }
+
+    if (nextDescription) {
+      dispatch(descriptionPart(nextDescription));
+    }
+
+    dispatch(resetTodos());
+  },
+});
+```
+
 ### Proxy Parts
 
 Combining the power of [Select Parts](#select-parts) and [Update Parts](#update-parts), Proxy Parts allow full manipulation of state without separate storage.
@@ -434,6 +499,38 @@ One thing to note is that, unlike other Parts, a Proxy Part is not callable as a
 ```ts
 const fullName = fullNamePart.select(store.getState());
 store.dispatch(fullNamePart.update('Next name'));
+```
+
+You can also create a Proxy Part with an object configuration, if desired:
+
+```ts
+const fullNamePart = part({
+  parts: [firstNamePart, lastNamePart],
+  get: (firstName, lastName) => `${firstName} ${lastName}`,
+  set: (dispatch, _, nextName: string) => {
+    const [first, last] = nextName.split(' ');
+
+    dispatch(firstNamePart(first));
+    dispatch(lastNamePart(last));
+  },
+});
+```
+
+The object configuration is the only way to provide a custom equality checker for the selector:
+
+```ts
+const priorityTodosPart = part({
+  parts: [firstNamePart, lastNamePart],
+  get: (firstName, lastName) => ({ firstName, lastName }),
+  set: (dispatch, _, nextName: string) => {
+    const [first, last] = nextName.split(' ');
+
+    dispatch(firstNamePart(first));
+    dispatch(lastNamePart(last));
+  },
+  isEqual: (prev, next) =>
+    prev.firstName === next.firstName && prev.lastName === next.lastName,
+});
 ```
 
 #### Non-Part proxies
@@ -565,3 +662,13 @@ const enhancer = createPartitioner({ parts, notifier: debounceNotify });
 ```
 
 This will debounce subscription notifications for both the entire store and specific Parts.
+
+## Related libraries
+
+- [Redux](https://redux.js.org/): Simple, powerful centralized state manager, one of the most commonly-used across the ecosystem.
+- [Redux Toolkit](https://redux-toolkit.js.org/): Opinionated approach to Redux, eliminating much of the boilerplate and driving a common convention.
+- [jotai](https://jotai.org/): Atomic state manager, inspiration for much of the API and features.
+- [Recoil](https://recoiljs.org/): Atomic state manager by Facebook, community driver for atomic state management in general.
+- [zustand](https://github.com/pmndrs/zustand): Barebones centralized state manager, alternative to Redux.
+
+Much of this work was founded on my appreciation of the elegant simplicity of [`jotai`](https://jotai.org/),
