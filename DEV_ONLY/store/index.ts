@@ -46,7 +46,7 @@ const sagaMiddleware = createSagaMiddleware();
 
 export const selectTodos = part([todosPart], (todos) => todos);
 
-function* logTodos(action: PartAction<Todo[]>, before: Todo[]) {
+function* logTodos(action: PartAction<Todo[]>, before: Todo[]): Generator {
   console.log('-----------');
   yield call(console.log, 'before', before);
   yield call(console.log, 'action', action.value);
@@ -54,12 +54,12 @@ function* logTodos(action: PartAction<Todo[]>, before: Todo[]) {
   console.log('-----------');
 }
 
-function* mySaga() {
+function* mySaga(): Generator {
   while (true) {
     const before = yield select(selectTodos);
     const action = yield take(todosPart);
 
-    yield call(logTodos, action, before);
+    yield call(logTodos, action as PartAction<Todo[]>, before as Todo[]);
   }
 }
 

@@ -373,7 +373,7 @@ describe('hooks', () => {
     describe('update parts', () => {
       const primitiveNonEmptyUpdate = part(
         null,
-        (dispatch, getState, nextValue: string) => {
+        (dispatch, _getState, nextValue: string) => {
           if (nextValue) {
             dispatch(primitivePart(nextValue));
           }
@@ -406,7 +406,7 @@ describe('hooks', () => {
   describe('usePartUpdate', () => {
     const primitiveNonEmptyUpdate = part(
       null,
-      (dispatch, getState, nextValue: string) => {
+      (dispatch, _getState, nextValue: string) => {
         if (nextValue) {
           dispatch(primitivePart(nextValue));
         }

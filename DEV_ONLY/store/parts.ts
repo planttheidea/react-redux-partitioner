@@ -87,7 +87,7 @@ export const userProxy = part(
     if (id && name) {
       const [first, last] = name.split(' ');
 
-      dispatch(userPart({ id, name: { first, last } }));
+      dispatch(userPart({ id, name: { first: first!, last: last! } }));
     }
   }
 );

@@ -180,7 +180,7 @@ function Toggle() {
 }
 
 function User() {
-  const [user, setUser] = usePart(userProxy);
+  const [user] = usePart(userProxy);
   const updateUser = usePartUpdate(userUpdate);
 
   console.count('user');

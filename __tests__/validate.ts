@@ -20,9 +20,6 @@ import {
   isUpdater,
 } from '../src/validate';
 
-import type { Dispatch } from 'redux';
-import type { GetState } from '../src';
-
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);
 const boundProxyPart = part(
@@ -64,7 +61,7 @@ describe('validate', () => {
     });
 
     it('should validate an updater', () => {
-      const updater = (dispatch: any, _: any, nextValue: any) => nextValue;
+      const updater = (_dispatch: any, _: any, nextValue: any) => nextValue;
 
       expect(isUpdater(updater)).toBe(true);
       expect(isUpdater(primitivePart)).toBe(false);
@@ -242,7 +239,7 @@ describe('validate', () => {
     const primitiveAction = primitivePart('next value');
     const composedAction = composedPart({ primitive: 'next value' });
     const genericAction = { type: 'GENERIC_ACTION' };
-    const thunk = (dispatch: Dispatch, getState: GetState) => {};
+    const thunk = () => {};
     const invalid: any = null;
 
     expect(isPartAction(primitiveAction)).toBe(true);
