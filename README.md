@@ -237,7 +237,7 @@ const nonPartReducer = handleActions(
 
 #### Stateful Update Parts
 
-Even though Stateful Parts are themselves [action creators](#action-creators), they have a fairly generic Redux action type applied (`UPDATE_${partName}`). If you follow the [Redux Style Guide](https://redux.js.org/style-guide/#model-actions-as-events-not-setters), then you may want to describe updates based on their context, or provide more convenient ones to reduce developer friction. This is available with the `update` method on the Part:
+Even though Stateful Parts are themselves [action creators](#action-creators), they have a fairly generic Redux action type applied (`UPDATE_${partName}`). If you follow the [Redux Style Guide](https://redux.js.org/style-guide/#model-actions-as-events-not-setters), then you may want to describe updates based on their context, or provide more convenient action creators to reduce developer friction. This is available with the `update` method on the Part:
 
 ```ts
 const activePart = part('active', false);
@@ -250,7 +250,7 @@ const toggleActive = activePart.update(
 );
 ```
 
-`part.update()` receives the custom `type` and optionally the method used to derive the next value, and return a custom [Update Part](#update-parts). In the above example, `activatePart` / `deactivatePart` are hard-coding next state types as `true` / `false`, and in the case of `toggleActivePart` it is using curring to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`.
+`part.update()` receives the custom `type` and optionally the method used to derive the next value, and return a custom [Update Part](#update-parts). In the above example, `activatePart` / `deactivatePart` are hard-coding next state types as `true` / `false`, and in the case of `toggleActivePart` it is using currying to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`.
 
 That said, the logic of these stateful updaters can be as complex as required:
 
@@ -289,7 +289,16 @@ const priorityTodosPart = part([todosPart], (todos) =>
 );
 ```
 
-In this case, the selector will run every time `todosPart` updates. It then can be used in your components as needed:
+In this case, the selector will run every time `todosPart` updates. It should also be noted that any selectable dependency can be used, so selectors can be composed:
+
+```ts
+const hasPriorityTodosPart = part(
+  [priorityTodosPart],
+  (priorityTodos) => priorityTodos.length > 0
+);
+```
+
+Use in components:
 
 ```tsx
 function TodoList() {
@@ -337,9 +346,10 @@ Since the selector receives the state object as the first parameter, you can use
 const priorityTodos = yield select(priorityTodosPart);
 ```
 
-However, unlike traditional selectors which can receive additional arguments, Select Part selectors will only ever receive the state. Therefore, if you want to use this in combination with other values, you'll need to create a memoized selector. Example using `reselect`:
+However, unlike traditional selectors which can receive additional arguments, Select Part selectors will only ever receive the state. Therefore, if you want to use this in combination with other values, you'll need to create a wrapping selector. Example using `reselect`:
 
 ```ts
+import { select } from 'redux-saga/effects';
 import { createSelector } from 'reselect';
 
 const selectMatchingPriorityTodos = createSelector(
@@ -349,7 +359,7 @@ const selectMatchingPriorityTodos = createSelector(
     todos.filter((todo) => todo.value.inclures(searchParam))
 );
 
-const priorityTodos = yield select(selectMatchingPriorityTodos, serachParam);
+const priorityTodos = yield select(selectMatchingPriorityTodos, searchParam);
 ```
 
 #### Non-Part selectors
@@ -526,7 +536,7 @@ const fullNamePart = part({
 The object configuration is the only way to provide a custom equality checker for the selector:
 
 ```ts
-const priorityTodosPart = part({
+const fullNamePart = part({
   parts: [firstNamePart, lastNamePart],
   get: (firstName, lastName) => ({ firstName, lastName }),
   set: (dispatch, _, nextName: string) => {
