@@ -16,7 +16,7 @@ A simple and performant way to manage Redux state.
       - [Action creators](#action-creators)
       - [Stateful Update Parts](#stateful-update-parts)
     - [Select Parts](#select-parts)
-      - [Use outside of React](#use-outside-of-react)
+      - [Use outside of components](#use-outside-of-components)
       - [Non-Part selectors](#non-part-selectors)
       - [Async selectors](#async-selectors)
     - [Update Parts](#update-parts)
@@ -36,16 +36,17 @@ A simple and performant way to manage Redux state.
 
 [Redux](https://redux.js.org/) is a popular global state manager that is extremely powerful and useful in a variety of use-cases. However, its lack of opinionation often requires teams to develop or use conventions to streamline additions, which results in a lot of "reinventing the wheel" or adopting a common community convention like [Redux Toolkit](https://redux-toolkit.js.org/). Also, due to its top-down update model, performance can degrade as the size of state grows because all components are listening for all state changes and doing work to determine if rendering needs to occur.
 
-Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Creation of these "atoms" is simple and straightforward, and unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state. The convention that aligns with the React `useState` convention, which is familiar and approachable. However, these managers are very difficult (in some cases, impossible) to work with outside the scope of React, and they lack a centralized pipeline that help with edge-case requirements.
+Recently, more atomic state managers like [Recoil](https://recoiljs.org/) and [jotai](https://jotai.org/) have become popular because they take a bottom-up approach to state management. Creation of these "atoms" is simple and straightforward, and unlike Redux's top-down model, updates for specific parts of state can be targeted only to components who are using that state. The consumption convention often aligns with the `React.useState` convention, which is familiar and approachable. However, these managers make it very difficult (in some cases, impossible) to work with outside the scope of React, and they lack a centralized pipeline that help with edge-case requirements.
 
-`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it automatically consolidated into a single Redux store. Components only perform work when the specific part of state they care about change, which improves performance (the larger the scale, the bigger the gains). All state updates go through the Redux dispatch pipeline, which allows for the full power of Redux to be used. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures. It can work side-by-side with `react-redux`, or potentially replace it entirely if you have no need for `connect`.
+`react-redux-partitioner` attempts to bridge the gap between these two approaches. You can build your state atomically, and have it easily managed into a single Redux store. Components only perform work when the specific part of state they care about change, which improves performance (the larger the scale, the bigger the gains). All state updates go through the Redux dispatch pipeline, which allows for the full power of Redux to be used. It naturally ties in with common Redux approaches like thunks, and can also work in tandem with traditional reducer structures. It can work side-by-side with `react-redux`, or even replace it entirely if you have no need for `connect`.
 
 ## Requirements:
 
+- `react` - at least v16.8 (when hooks were introduced)
 - `redux` - at least v4
 - `redux-thunk` - official middleware of `redux`, automatically included when using default `configureStore` setups
 
-If using TypeScript, it is recommended to use 4.7+. A lot of inference and tuple use drives the typing, and support is missing from older TS versions.
+If using TypeScript, it is recommended to use at least v4.7 (but preferrably latest). A lot of inference and tuple use drives the typing, and support is missing from older TS versions.
 
 ## Usage
 
@@ -136,6 +137,8 @@ export function App() {
 }
 ```
 
+There are also [additional enhancements to the store object](#store-enhancements) if needed outside the scope of React.
+
 ## Hooks
 
 ### `usePart`
@@ -146,6 +149,8 @@ Returns a `useState`-like Tuple, where the first item is the value of the Part, 
 const [todos, updateTodos] = usePart(todosPart);
 ```
 
+Whenever the state for the Part passed updates, the component will rerender. If using [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts), the component will rerender if any of the upstream dependencies for the selector update.
+
 Please note that when using [Select Parts](#select-parts) or [Update Parts](#update-parts), only the items associated with those Parts will be available. This means that for Select Parts the update method will be a no-op, and for Update Parts the value will be `undefined`.
 
 ### `usePartValue`
@@ -155,6 +160,8 @@ Returns the value of the Part only. This is a convenience hook for when performi
 ```ts
 const todos = usePartValue(todosPart);
 ```
+
+Whenever the state for the Part passed updates, the component will rerender. If using [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts), the component will rerender if any of the upstream dependencies for the selector update.
 
 Please note that when using [Update Parts](#update-parts) this will return `undefined`.
 
@@ -316,9 +323,9 @@ const priorityTodosPart = part({
 });
 ```
 
-#### Use outside of React
+#### Use outside of components
 
-You can also call the selector outside the scope of a React tree:
+You can also call the selector outside the scope of a component:
 
 ```ts
 const priorityTodos = priorityTodosPart(store.getState());
@@ -330,7 +337,7 @@ Since the selector receives the state object as the first parameter, you can use
 const priorityTodos = yield select(priorityTodosPart);
 ```
 
-However, unlike traditional selectors which can receive additional arguments, selectors will only ever receive the state. Therefore, if you want to use this in combination with other values, you'll need to create a superset selector. Example using `reselect`:
+However, unlike traditional selectors which can receive additional arguments, Select Part selectors will only ever receive the state. Therefore, if you want to use this in combination with other values, you'll need to create a memoized selector. Example using `reselect`:
 
 ```ts
 import { createSelector } from 'reselect';
@@ -440,13 +447,13 @@ const fooUpdatePart =
     dispatch(fooPart(fooValue));
 ```
 
-This allows for convenient use both in and out of a hook context:
+This allows for convenient use both in and out of a component context:
 
 ```ts
 store.dispatch(resetAppPart('Next title', 'Next description'));
 ```
 
-Please note that if an `extraArgument` is provided to `redux-thunk`, it will not be available.
+Please note that `extraArgument` from `redux-thunk` is not supported.
 
 You can also create an Update Part with an object configuration, if desired:
 
@@ -557,8 +564,8 @@ Sometimes it is necessary to combine Part-based state with reducers that do not 
 
 ```ts
 import { createPartitioner } from 'react-redux-partitioner';
-import existingReducer from './reducer';
-import parts from './parts';
+import { reducer as existingReducer } from './reducer';
+import { parts } from './parts';
 
 export default createPartitioner({ parts, otherReducer: existingReducer });
 ```
@@ -567,10 +574,10 @@ If you are passing a reducer map to `configureStore` in `@reduxjs/toolkit`, or u
 
 ```ts
 import { createPartitioner } from 'react-redux-partitioner';
-import { count } from './reducers';
-import parts from './parts';
+import { countReducer as count, userReducer as user } from './reducers';
+import { parts } from './parts';
 
-export default createPartitioner({ parts, otherReducer: { count } });
+export default createPartitioner({ parts, otherReducer: { count, user } });
 ```
 
 ## Store enhancements
@@ -582,17 +589,17 @@ While Redux embraces the _convention_ of immutability, it does not _enforce_ it 
 1. When the reference to a part in state is the same as that in state, state will not change.
 2. When the state object has not changed, subscribers to the store or any specific Part will not be notified.
 
-It is very common to "code around" these in Redux, so you may not even be aware that you are gating a dispatch on the value being different, or returning a conditional `state.value === action.payload ? state : { ...state, value: payload }` in your action handlers. With `react-redux-partitioner`, this is built in, which should reduce the complexity of your code. That said, it does different from standard Redux, which will always eagerly update state, and notify subscribers on every dispatch regardless of state changes, so it is called out explicitly.
+It is very common to "code around" these in Redux, so you may not even be aware that you are gating a dispatch on the value being different, or returning a conditional `state.value === action.payload ? state : { ...state, value: payload }` in your action handlers to prevent unnecessary state updates. With `react-redux-partitioner`, this is built in, which should reduce the complexity of your code. That said, it differs from standard Redux, which will always eagerly update state, and notify subscribers on every dispatch regardless of state changes, so it is something to be aware of.
 
 ### `getState`
 
-In standard Redux, `getState` accepts no arguments and returns the entire state object. With the enhancer, this method is updated to support receiving a selectable Part and returning that Part's value. This can either be the value stored in state for Stateful Parts, or the derived value from [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts):
+In standard Redux, `getState` accepts no arguments and returns the entire state object. With the enhancer, this method is enhanced to support receiving a selectable Part and returning that Part's value. This can either be the value stored in state for Stateful Parts, or the derived value from [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts):
 
 ```ts
 const todos = store.getState(todosPart);
 ```
 
-If no parameter is passed, it works as it does in standard Redux:
+If no parameter is passed, it will return the entire state object, just as it does in standard Redux:
 
 ```ts
 const state = store.getState();
@@ -617,7 +624,7 @@ store.dispatch({ type: 'FOO' }); // listener not called
 store.dispatch(todosPart(['do stuff'])); // 'state changed!'
 ```
 
-If you have listeners that rely on every dispatch and not just every state change, or wish to avoid the batching mechanics, you can use [`subscribeToDispatch`](#subscribetodispatch), which refers to the original `store.subscribe()` method.
+If you have listeners that rely on every dispatch and not just every state change, or wish to avoid any batching mechanics, you can use [`subscribeToDispatch`](#subscribetodispatch), which refers to the original `store.subscribe()` method.
 
 ### `subscribeToDispatch`
 
@@ -650,7 +657,7 @@ const unsubscribe = store.subscribeToPart(todosPart, () => {
 
 ### Batched notification of subscribers
 
-A common use-case in Redux is to batch notification of subscribers to reduce the number of renders driven by state updates, often with the popular [`redux-batched-subscribe`](https://github.com/tappleby/redux-batched-subscribe) library. Because this is such a common use-case, and because the subscription model has changed to handle Part-specific subscriptions, this is now available as a convenient add-on when creating the enhancer.
+A common use-case in Redux is to batch notification of subscribers to reduce the number of renders driven by state updates, often with the popular [`redux-batched-subscribe`](https://github.com/tappleby/redux-batched-subscribe) library. Because this is such a common use-case, and because the subscription model has changed to handle Part-specific subscriptions, this is now available as a convenient add-on when creating the enhancer to debounce subscription notifications for both the entire store and specific Parts.
 
 ```ts
 import debounce from 'lodash/debounce';
@@ -661,14 +668,12 @@ const debouncedNotify = debounce((notify) => notify(), 0);
 const enhancer = createPartitioner({ parts, notifier: debounceNotify });
 ```
 
-This will debounce subscription notifications for both the entire store and specific Parts.
+If using `redux-batched-subscribe`, it is recommended to remove it in favor of the enhancer batching, since their subscription models will conflict.
 
 ## Related libraries
 
 - [Redux](https://redux.js.org/): Simple, powerful centralized state manager, one of the most commonly-used across the ecosystem.
 - [Redux Toolkit](https://redux-toolkit.js.org/): Opinionated approach to Redux, eliminating much of the boilerplate and driving a common convention.
-- [jotai](https://jotai.org/): Atomic state manager, inspiration for much of the API and features.
+- [jotai](https://jotai.org/): Atomic state manager, inspiration for much of the `react-redux-partitioner` API and features.
 - [Recoil](https://recoiljs.org/): Atomic state manager by Facebook, community driver for atomic state management in general.
 - [zustand](https://github.com/pmndrs/zustand): Barebones centralized state manager, alternative to Redux.
-
-Much of this work was founded on my appreciation of the elegant simplicity of [`jotai`](https://jotai.org/),
