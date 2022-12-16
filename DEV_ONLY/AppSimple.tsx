@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import React, { ReactNode, Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import {
   Provider,
@@ -12,8 +13,23 @@ import {
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);
 
-const errorPart = part([primitivePart], async (primitive) => {
-  throw new Error(primitive);
+const errorPart = part([primitivePart], (primitive) => {
+  console.log('called sync', primitive);
+
+  if (primitive === 'value') {
+    throw new Error(primitive);
+  }
+
+  return 'okay';
+});
+const errorAsyncPart = part([primitivePart], async (primitive) => {
+  console.log('called async', primitive);
+
+  if (primitive === 'value') {
+    throw new Error(primitive);
+  }
+
+  return 'okay';
 });
 
 const parts = [composedPart] as const;
@@ -48,32 +64,39 @@ function useAfterTimeout(fn: () => void, ms: number) {
   }, []);
 }
 
-function Error() {
-  const value = usePartValue(errorPart);
+function ErrorAsyncComponent() {
+  const value = usePartValue(errorAsyncPart);
 
-  return <div>Error: {value}</div>;
+  return <div>Async: {value}</div>;
 }
 
-class ErrorBoundary extends React.Component<
-  { children: ReactNode },
-  { error: Error | null }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { error: null };
-  }
+function ErrorComponent() {
+  const value = usePartValue(errorPart);
 
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
+  return <div>Sync: {value}</div>;
+}
 
-  render() {
-    if (this.state.error) {
-      return <div>Error in Suspense component.</div>;
+function ErrorFallback({
+  resetErrorBoundary,
+}: {
+  error: Error;
+  resetErrorBoundary: () => void;
+}) {
+  const primitive = usePartValue(primitivePart);
+  const prevPrimitiveRef = useRef(primitive);
+
+  useEffect(() => {
+    if (primitive !== prevPrimitiveRef.current) {
+      console.log('resetting');
+      resetErrorBoundary();
     }
+  }, [primitive]);
 
-    return this.props.children;
-  }
+  useEffect(() => {
+    prevPrimitiveRef.current = primitive;
+  });
+
+  return <div>Error in component.</div>;
 }
 
 function Primitive() {
@@ -99,10 +122,14 @@ export default function App() {
         <Primitive />
         <Composed />
 
-        <ErrorBoundary>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Suspense fallback={<span>Loading...</span>}>
-            <Error />
+            <ErrorAsyncComponent />
           </Suspense>
+        </ErrorBoundary>
+
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <ErrorComponent />
         </ErrorBoundary>
       </main>
     </Provider>

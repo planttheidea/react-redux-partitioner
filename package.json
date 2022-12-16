@@ -34,6 +34,7 @@
     "jest-environment-jsdom": "^29.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-error-boundary": "^3.1.4",
     "redux-saga": "^1.2.2",
     "release-it": "^15.5.0",
     "reselect": "^4.1.7",
