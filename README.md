@@ -266,7 +266,25 @@ const nonPartReducer = handleActions(
 
 #### Stateful Update Parts
 
-Even though Stateful Parts are themselves [action creators](#action-creators), they have a fairly generic Redux action type applied (`UPDATE_${partName}`). If you follow the [Redux Style Guide](https://redux.js.org/style-guide/#model-actions-as-events-not-setters), then you may want to describe updates based on their context, or provide more convenient action creators to reduce developer friction. This is available with the `update` method on the Part:
+Even though Stateful Parts are themselves [action creators](#action-creators), they have a fairly generic Redux action type applied (`${partOwner}/UPDATE_${partName}`). This means that if you created state as such:
+
+```ts
+const descriptionPart = part('description', '');
+const idPart = part('id', '');
+const userPart = part('user', [idPart]);
+
+const partitioner = createPartitioner({
+  parts: [descriptionPart, userPart] as const,
+});
+```
+
+The action types for the "native" updaters would be:
+
+- `descriptionPart` => `description/UPDATE_DESCRIPTION`
+- `idPart` => `user/UPDATE_ID`
+- `userPart` => `user/UPDATE_USER`
+
+If you follow the [Redux Style Guide](https://redux.js.org/style-guide/#model-actions-as-events-not-setters), then you may want to describe updates based on their context, or provide more convenient action creators to reduce developer friction. This is available with the `update` method on the returned Part:
 
 ```ts
 const activePart = part('active', false);
@@ -279,7 +297,7 @@ const toggleActive = activePart.update(
 );
 ```
 
-`part.update()` receives the custom `type` and optionally the method used to derive the next value, and return a custom [Update Part](#update-parts). In the above example, `activatePart` / `deactivatePart` are hard-coding next state types as `true` / `false`, and in the case of `toggleActivePart` it is using currying to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`.
+`part.update()` receives the custom `type` and optionally the method used to derive the next value, and return a custom [Update Part](#update-parts). In the above example, `activatePart` / `deactivatePart` are hard-coding next state types as `true` / `false`, and in the case of `toggleActivePart` it is using currying to derive the next state based on the previous state just as you would passing a function to the update method returned from `usePart`. The custom action types are also automatically namespaced for the Part owner, just as the native action types are.
 
 That said, the logic of these stateful updaters can be as complex as required:
 
