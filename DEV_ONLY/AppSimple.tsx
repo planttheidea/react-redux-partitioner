@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import React, { useEffect } from 'react';
+import React, { ReactNode, Suspense, useEffect } from 'react';
 
 import {
   Provider,
@@ -11,6 +11,10 @@ import {
 
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);
+
+const errorPart = part([primitivePart], async (primitive) => {
+  throw new Error(primitive);
+});
 
 const parts = [composedPart] as const;
 const { enhancer, reducer } = createPartitioner({ parts });
@@ -44,6 +48,34 @@ function useAfterTimeout(fn: () => void, ms: number) {
   }, []);
 }
 
+function Error() {
+  const value = usePartValue(errorPart);
+
+  return <div>Error: {value}</div>;
+}
+
+class ErrorBoundary extends React.Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return <div>Error in Suspense component.</div>;
+    }
+
+    return this.props.children;
+  }
+}
+
 function Primitive() {
   const [value, setValue] = usePart(primitivePart);
 
@@ -66,6 +98,12 @@ export default function App() {
 
         <Primitive />
         <Composed />
+
+        <ErrorBoundary>
+          <Suspense fallback={<span>Loading...</span>}>
+            <Error />
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </Provider>
   );
