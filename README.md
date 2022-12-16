@@ -152,6 +152,7 @@ const addTodo = useCallback(
   (todo) => updateTodos((prev) => [...prev, todo]),
   [updateTodos]
 );
+const resetTodos = useCallback(() => updateTodos([]), [updateTodos]);
 
 return (
   <div>
@@ -197,9 +198,11 @@ const addTodo = useCallback(
   (todo) => updateTodos((prev) => [...prev, todo]),
   [updateTodos]
 );
+const resetTodos = useCallback(() => updateTodos([]), [updateTodos]);
 ```
 
-Please note that when using [Select Parts](#select-parts) this will return a no-op method.
+Notice that the update method provided does not need to be wrapped in a `dispatch()` call as in `react-redux`; it is already bound to the store's `dispatch` method for you.
+Also, please note that when using [Select Parts](#select-parts) this will return a no-op method.
 
 ## Part types
 
