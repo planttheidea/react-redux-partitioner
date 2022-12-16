@@ -16,6 +16,10 @@ export default {
   module: {
     rules: [
       {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
         include: [path.resolve(ROOT, 'src'), /DEV_ONLY/],
         loader: 'ts-loader',
         options: {

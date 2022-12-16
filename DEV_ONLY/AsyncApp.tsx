@@ -1,3 +1,5 @@
+import './async.css';
+
 import { a, useSpring } from '@react-spring/web';
 import { configureStore } from '@reduxjs/toolkit';
 import React, { Suspense } from 'react';
@@ -65,12 +67,12 @@ function Id() {
   return <a.h1>{springProps.id.to(Math.round)}</a.h1>;
 }
 
-function Next() {
+function ChangePost() {
   const prevPost = usePartUpdate(decrementPostUpdate);
   const nextPost = usePartUpdate(incrementPostUpdate);
 
   return (
-    <div>
+    <div className="button-container">
       <button onClick={prevPost}>&#x2190;</button>
       <button onClick={nextPost}>&#x2192;</button>
     </div>
@@ -95,10 +97,8 @@ export default function App() {
   return (
     <Provider store={store}>
       <main>
-        <h1>App</h1>
-
+        <ChangePost />
         <Id />
-        <Next />
 
         <br />
 
