@@ -145,11 +145,24 @@ There are also [additional enhancements to the store object](#store-enhancements
 
 Returns a `useState`-like Tuple, where the first item is the value of the Part, and the second is the update method for the Part.
 
-```ts
+```tsx
 const [todos, updateTodos] = usePart(todosPart);
+
+const addTodo = useCallback(
+  (todo) => updateTodos((prev) => [...prev, todo]),
+  [updateTodos]
+);
+
+return (
+  <div>
+    {todos.map((todo) => (
+      <Todo key={todo.value} {...todo} />
+    ))}
+  </div>
+);
 ```
 
-Whenever the state for the Part passed updates, the component will rerender. If using [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts), the component will rerender if any of the upstream dependencies for the selector update.
+Whenever the state for the Part passed updates, the component will rerender. If using [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts), the component will rerender if any of the upstream dependencies for the selector update. Also, notice that the update method provided does not need to be wrapped in a `dispatch()` call as in `react-redux`; it is already bound to the store's `dispatch` method for you.
 
 Please note that when using [Select Parts](#select-parts) or [Update Parts](#update-parts), only the items associated with those Parts will be available. This means that for Select Parts the update method will be a no-op, and for Update Parts the value will be `undefined`.
 
@@ -157,8 +170,16 @@ Please note that when using [Select Parts](#select-parts) or [Update Parts](#upd
 
 Returns the value of the Part only. This is a convenience hook for when performing updates within the scope of the component is not required.
 
-```ts
+```tsx
 const todos = usePartValue(todosPart);
+
+return (
+  <div>
+    {todos.map((todo) => (
+      <Todo key={todo.value} {...todo} />
+    ))}
+  </div>
+);
 ```
 
 Whenever the state for the Part passed updates, the component will rerender. If using [Select Parts](#select-parts) or [Proxy Parts](#proxy-parts), the component will rerender if any of the upstream dependencies for the selector update.
@@ -171,6 +192,11 @@ Returns the update method of the Part only. This is a convenience hook for when 
 
 ```ts
 const updateTodos = usePartUpdate(todosPart);
+
+const addTodo = useCallback(
+  (todo) => updateTodos((prev) => [...prev, todo]),
+  [updateTodos]
+);
 ```
 
 Please note that when using [Select Parts](#select-parts) this will return a no-op method.
