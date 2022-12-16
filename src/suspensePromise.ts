@@ -23,7 +23,7 @@ export function createSuspensePromise<Result>(
       promise.then(
         (result) => {
           if (entry.s === 'canceled') {
-            return;
+            return resolve(undefined as Result);
           }
 
           entry.e = null;
@@ -34,7 +34,7 @@ export function createSuspensePromise<Result>(
         },
         (error) => {
           if (entry.s === 'canceled') {
-            return;
+            return resolve(undefined as Result);
           }
 
           entry.e = error;
