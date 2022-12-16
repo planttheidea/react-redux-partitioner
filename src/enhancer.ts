@@ -77,10 +77,12 @@ export function createEnhancer<
       ) {
         const index = partsToNotify.indexOf(part.id);
 
-        partsToNotify.push(part.id);
+        if (index === -1 || index < partsToNotify.length - 1) {
+          if (index !== -1) {
+            partsToNotify.splice(index, 1);
+          }
 
-        if (index !== -1) {
-          partsToNotify.splice(index, 1);
+          partsToNotify.push(part.id);
         }
 
         for (let index = 0; index < part.d.length; ++index) {
