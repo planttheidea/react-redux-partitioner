@@ -1,4 +1,3 @@
-import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import {
   COMPOSED_PART,
   PRIMITIVE_PART,
@@ -74,6 +73,8 @@ import type {
   UpdatePartConfig,
 } from './types';
 import { createGetState } from './enhancer';
+
+const NO_DEPENDENTS = Object.freeze([]) as [];
 
 function cancelRunningSuspensePromise(promise: Promise<unknown>): void {
   const entry = isPromise(promise) && getSuspensePromiseCacheEntry(promise);
@@ -515,7 +516,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 
   part.id = getId();
 
-  part.d = IGNORE_ALL_DEPENDENCIES;
+  part.d = NO_DEPENDENTS;
   part.f = UPDATE_PART as UpdatePart<Updater>['f'];
   part.g = noop;
   part.s = set;
