@@ -9,7 +9,7 @@ import {
   usePart,
   usePartValue,
   type PartAction,
-} from '../src';
+} from '../../src';
 
 const titlePart = part('title', 'My todos list');
 const descriptionPart = part('description', 'A simple list of todos');

@@ -15,7 +15,7 @@ import {
   type PartAction,
   type PartsStoreExtensions,
   type Store,
-} from '../../src';
+} from '../../../src';
 
 import { storeParts, todosPart, type Todo } from './parts';
 

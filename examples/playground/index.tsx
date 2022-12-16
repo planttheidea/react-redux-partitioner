@@ -12,7 +12,7 @@ import {
   usePartUpdate,
   usePartValue,
   useStore,
-} from '../src';
+} from '../../src';
 import {
   activateUpdate,
   activeTogglePart,

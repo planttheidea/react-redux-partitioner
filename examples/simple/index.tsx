@@ -8,7 +8,7 @@ import {
   part,
   usePart,
   usePartValue,
-} from '../src';
+} from '../../src';
 
 const primitivePart = part('primitive', 'value');
 const composedPart = part('composed', [primitivePart]);

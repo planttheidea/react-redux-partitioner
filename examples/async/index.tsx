@@ -12,7 +12,7 @@ import {
   usePart,
   usePartUpdate,
   usePartValue,
-} from '../src';
+} from '../../src';
 
 type PostData = {
   by: string;

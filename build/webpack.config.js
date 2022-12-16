@@ -9,7 +9,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 export default {
   devtool: 'source-map',
 
-  entry: [path.resolve(ROOT, 'DEV_ONLY', 'index.tsx')],
+  entry: [path.resolve(ROOT, 'examples', 'index.tsx')],
 
   mode: 'development',
 
@@ -20,7 +20,7 @@ export default {
         use: ['style-loader', 'css-loader'],
       },
       {
-        include: [path.resolve(ROOT, 'src'), /DEV_ONLY/],
+        include: [path.resolve(ROOT, 'src'), /examples/],
         loader: 'ts-loader',
         options: {
           configFile: path.resolve(ROOT, 'build', 'tsconfig', 'base.json'),

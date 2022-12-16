@@ -1,5 +1,5 @@
 import { ReduxState } from '.';
-import { part } from '../../src';
+import { part } from '../../../src';
 
 export type Todo = string;
 
