@@ -2,9 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 // import App from './async';
-import App from './playground';
+// import App from './playground';
 // import App from './simple';
-// import App from './todos';
+import App from './todos';
 
 document.body.style.backgroundColor = '#1d1d1d';
 document.body.style.color = '#d5d5d5';
