@@ -1,4 +1,3 @@
-import { IGNORE_ALL_DEPENDENCIES } from './constants';
 import { noop, updateUniqueList } from './utils';
 import { isPartAction, isSelectablePart } from './validate';
 
@@ -200,7 +199,7 @@ export function createEnhancer<
           );
         }
 
-        if (part.d === IGNORE_ALL_DEPENDENCIES) {
+        if (!isSelectablePart(part)) {
           return noop;
         }
 

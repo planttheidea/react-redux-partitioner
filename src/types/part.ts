@@ -1,4 +1,3 @@
-import type { IgnoreAllDependencies } from '../constants';
 import type {
   COMPOSED_PART,
   PART,
@@ -318,7 +317,7 @@ export interface UpdatePart<Updater extends AnyUpdater> extends BasePart {
    */
   (...rest: UpdatePartArgs<Updater>): Thunk<any, ReturnType<Updater>>;
 
-  d: IgnoreAllDependencies;
+  d: [];
   f: typeof UPDATE_PART;
   /**
    * The [g]etter used by other Parts to either retrieve a value in state or

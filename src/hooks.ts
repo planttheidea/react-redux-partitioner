@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { ReactReduxPartitionerContext } from './context';
 import { getSuspensePromiseCacheEntry } from './suspensePromise';
@@ -15,6 +15,7 @@ import type {
   UsePartValue,
   UsePartUpdate,
   Store,
+  Subscribe,
   UpdatePartArgs,
   ReactReduxPartitionerContextType,
 } from './types';
@@ -98,9 +99,12 @@ export function usePartValue<Part extends AnyPart>(
 ): UsePartValue<Part> {
   const { getServerState, store } = usePartitionerContext();
 
-  const subscribe = useCallback(
-    (listener: Listener) =>
-      store.subscribeToPart(part as AnyPrimitivePart, listener),
+  const subscribe = useMemo<Subscribe>(
+    () =>
+      isSelectablePart(part)
+        ? (listener: Listener) =>
+            store.subscribeToPart(part as AnyPrimitivePart, listener)
+        : () => noop,
     [store, part]
   );
 
