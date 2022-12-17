@@ -526,7 +526,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 }
 
 export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
-  return function partAction<GetValue extends AnyGetValue<Part['i']>>(
+  return function partUpdater<GetValue extends AnyGetValue<Part['i']>>(
     baseType: string,
     getValue: GetValue = identity as GetValue
   ) {
