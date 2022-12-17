@@ -97,7 +97,7 @@ export interface StatefulPartUpdater<State> {
    * Creates a dedicated action creator for updating the value in state
    * for this part. Allows for declarative action types.
    */
-  (type: string): UpdatePart<GetValueUpdater<State, [State]>>;
+  (type: string): StatefulUpdatePart<GetValueUpdater<State, [State]>>;
   /**
    * Creates a dedicated action creator for updating the value in state
    * for this part. Allows for declarative action types, as well as custom
@@ -106,7 +106,7 @@ export interface StatefulPartUpdater<State> {
   <GetValue extends AnyGetValue<State>>(
     type: string,
     getValue: GetValue
-  ): UpdatePart<
+  ): StatefulUpdatePart<
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - The tuple is not inferrable here, but passes through to the consumer.
     GetValueUpdater<State, Parameters<GetValue>>
@@ -330,6 +330,16 @@ export interface UpdatePart<Updater extends AnyUpdater> extends BasePart {
    * The update method used to [s]et 1-n values in state.
    */
   s: Updater;
+}
+
+export interface StatefulUpdatePart<Updater extends AnyUpdater>
+  extends UpdatePart<Updater> {
+  /**
+   * Returns the action type used whenever the Part updates its value
+   * in state. Can be useful as a key for action handlers on non-Part
+   * reducers, or in third-party tools like `redux-saga`'s `take`.
+   */
+  toString(): string;
 }
 
 export type AnyPart =
