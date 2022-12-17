@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import { Provider, ReactReduxPartitionerContext, part } from '../src';
 import { createStore } from './__utils__/createStore';
 

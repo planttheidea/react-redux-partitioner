@@ -3,7 +3,7 @@
     "allowUnreachableCode": false,
     "baseUrl": "src",
     "esModuleInterop": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "Node",

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import { usePartValue } from '../../../src';
 import Todo from './Todo';

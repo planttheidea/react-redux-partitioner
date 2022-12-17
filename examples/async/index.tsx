@@ -2,7 +2,7 @@ import './async.css';
 
 import { a, useSpring } from '@react-spring/web';
 import { configureStore } from '@reduxjs/toolkit';
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import Parser from 'html-react-parser';
 
 import {

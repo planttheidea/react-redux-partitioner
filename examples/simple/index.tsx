@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import React, { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import {

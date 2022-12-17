@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import Entry from './Entry';
 import Todos from './Todos';
