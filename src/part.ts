@@ -5,10 +5,7 @@ import {
   SELECT_PART,
   UPDATE_PART,
 } from './flags';
-import {
-  getSuspensePromise,
-  getSuspensePromiseCacheEntry,
-} from './suspensePromise';
+import { cancelSuspensePromise, getSuspensePromise } from './suspensePromise';
 import {
   getId,
   identity,
@@ -77,14 +74,6 @@ import { createGetState } from './enhancer';
 
 const NO_DEPENDENTS = Object.freeze([]) as [];
 
-function cancelRunningSuspensePromise(promise: Promise<unknown>): void {
-  const entry = isPromise(promise) && getSuspensePromiseCacheEntry(promise);
-
-  if (entry) {
-    entry.c();
-  }
-}
-
 function createBoundSelector<
   Parts extends Tuple<AnySelectablePart>,
   Selector extends AnySelector<Parts>
@@ -128,7 +117,7 @@ function createBoundSelector<
     values = nextValues;
 
     if (hasChanged) {
-      cancelRunningSuspensePromise(result);
+      cancelSuspensePromise(result);
 
       if (hasPromise) {
         const nextResult: Promise<ReturnType<Selector>> = Promise.all(
@@ -246,7 +235,7 @@ function createUnboundSelector<Selector extends AnyGenericSelector>(
     const nextResult = get(getState);
 
     if (!isEqual(result, nextResult)) {
-      cancelRunningSuspensePromise(result);
+      cancelSuspensePromise(result);
 
       result = isPromise(nextResult)
         ? getSuspensePromise(nextResult)
