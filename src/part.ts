@@ -63,6 +63,7 @@ import type {
   SelectPartArgs,
   Set,
   StatefulPartUpdater,
+  StatefulUpdatePart,
   Tuple,
   UnboundProxyPart,
   UnboundProxyPartConfig,
@@ -525,7 +526,7 @@ export function createUpdatePart<Updater extends AnyUpdater>(
 }
 
 export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
-  return function partAction<GetValue extends AnyGetValue<Part['i']>>(
+  return function partUpdater<GetValue extends AnyGetValue<Part['i']>>(
     baseType: string,
     getValue: GetValue = identity as GetValue
   ) {
@@ -557,10 +558,13 @@ export function createPartUpdater<Part extends AnyStatefulPart>(part: Part) {
       });
     }
 
-    // @ts-expect-error - `set` types don't perfectly align, but we know them.
-    return createUpdatePart<typeof set>({
-      set,
-    });
+    // @ts-expect-error - `set` cannot determine the tuple from the rest parameters, but it works externally.
+    const updatePart = createUpdatePart({ set });
+
+    updatePart.toString = () => type;
+
+    // @ts-expect-error - `set` cannot determine the tuple from the rest parameters, but it works externally.
+    return updatePart as StatefulUpdatePart<typeof set>;
   } as StatefulPartUpdater<Part['i']>;
 }
 

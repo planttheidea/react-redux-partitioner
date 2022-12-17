@@ -30,6 +30,24 @@ describe('part', () => {
 
       expect(store.getState(primitivePart)).toBe('next value');
     });
+
+    it('should have a stateful updater', () => {
+      const primitivePart = part('primitive', 'value');
+      const store = createStore({ parts: [primitivePart] as const });
+
+      const custom = primitivePart.update(
+        'NORMALIZE_PRIMITIVE',
+        (value: string | number | boolean) => String(value)
+      );
+
+      store.dispatch(custom(false));
+      expect(store.getState(primitivePart)).toBe('false');
+
+      store.dispatch(custom(123));
+      expect(store.getState(primitivePart)).toBe('123');
+
+      expect(custom.toString()).toBe('primitive/NORMALIZE_PRIMITIVE');
+    });
   });
 
   describe('Composed', () => {
@@ -115,6 +133,25 @@ describe('part', () => {
       expect(store.getState(cPart)).toEqual({ b: { a: 'next value' } });
       expect(store.getState(bPart)).toEqual({ a: 'next value' });
       expect(store.getState(aPart)).toEqual('next value');
+    });
+
+    it('should have a stateful updater', () => {
+      const primitivePart = part('primitive', 'value');
+      const composedPart = part('composed', [primitivePart]);
+      const store = createStore({ parts: [composedPart] as const });
+
+      const custom = composedPart.update(
+        'NORMALIZE_PRIMITIVE',
+        (value: string | number | boolean) => ({ primitive: String(value) })
+      );
+
+      store.dispatch(custom(false));
+      expect(store.getState(composedPart)).toEqual({ primitive: 'false' });
+
+      store.dispatch(custom(123));
+      expect(store.getState(composedPart)).toEqual({ primitive: '123' });
+
+      expect(custom.toString()).toBe('composed/NORMALIZE_PRIMITIVE');
     });
   });
 
