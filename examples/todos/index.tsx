@@ -1,5 +1,4 @@
 import { Global, css } from '@emotion/react';
-import React from 'react';
 import { Provider } from '../../src';
 import Main from './components/Main';
 import { store } from './store';

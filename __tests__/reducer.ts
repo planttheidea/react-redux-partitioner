@@ -22,7 +22,7 @@ describe('reducer', () => {
   });
 
   it('should handle creation with parts and traditional reducers to compose', () => {
-    const count = (state: number = 0, action: Action) => {
+    const count = (state = 0, action: Action) => {
       switch (action.type) {
         case 'INCREMENT':
           return state + 1;

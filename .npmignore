@@ -1,7 +1,7 @@
 __tests__
-DEV_ONLY
 build
 coverage
+examples
 .gitignore
 jest.config.jest
 tsconfig.json

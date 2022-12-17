@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { usePartUpdate } from '../../../src';
 import styled from '@emotion/styled';
 import Button from './Button';
