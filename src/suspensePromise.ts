@@ -1,3 +1,5 @@
+import { isPromise } from './validate';
+
 import type { SuspensePromiseCacheEntry } from './types';
 
 const CACHE = new WeakMap<
@@ -6,10 +8,10 @@ const CACHE = new WeakMap<
 >();
 
 export function cancelSuspensePromise(promise: Promise<unknown>): void {
-  const cached = CACHE.get(promise);
+  const entry = isPromise(promise) && CACHE.get(promise);
 
-  if (cached) {
-    cached.s = 'canceled';
+  if (entry) {
+    entry.c();
   }
 }
 
@@ -17,7 +19,9 @@ export function createSuspensePromise<Result>(
   promise: Promise<Result>
 ): Promise<Result> {
   const entry: SuspensePromiseCacheEntry<Result> = {
-    c: () => cancelSuspensePromise(entry.p),
+    c: () => {
+      entry.s = 'canceled';
+    },
     e: null,
     p: new Promise<Result>((resolve, reject) => {
       promise.then(
